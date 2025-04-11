@@ -3925,18 +3925,18 @@ function Airflow:DrawList(config)
 		value.TextXAlignment = Enum.TextXAlignment.Right
 		
 		return {
-			SetKey = function(self , value)
-				config.Key = value;
+			SetKey = function(self , Value)
+				config.Key = Value;
 				name.Text = config.Key
 			end,
 			
-			SetValue = function(self , value)
-				config.Value = value;
+			SetValue = function(self , Value)
+				config.Value = Value;
 				value.Text = config.Value
 			end,
 			
-			Visible = function(self , value)
-				Frame.Visible = value;
+			Visible = function(self , Value)
+				Frame.Visible = Value;
 			end,
 		}
 	end;
