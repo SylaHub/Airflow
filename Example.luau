@@ -101,6 +101,20 @@ sec:AddDropdown({
 	Callback = print
 })
 
+sec:AddColorPicker({
+	Name = "ColorPicker 1",
+	Default = Color3.fromRGB(0, 255, 217),
+	Callback = print,
+})
+
+
+sec:AddColorPicker({
+	Name = "ColorPicker 2",
+	Default = Color3.fromRGB(255, 200, 0),
+	Callback = print,
+})
+
+
 sec:AddParagraph({
 	Name = "Paragraph",
 	Content = "Content"
@@ -135,11 +149,11 @@ local f2 = Example:AddSection({
 	Name = "Feature II",
 	Position = "Right"
 })
-	
+
 f2:AddToggle({
-		Name = "Enabled",
-		Callback = print,
-	}):AutomaticVisible({
+	Name = "Enabled",
+	Callback = print,
+}):AutomaticVisible({
 	Target = true,
 	Elements = {
 		f2:AddToggle({
