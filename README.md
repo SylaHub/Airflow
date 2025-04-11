@@ -14,3 +14,4 @@ local Airflow = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/
 ```
 
 ## 📜 Document
+- [Example](https://github.com/4lpaca-pin/Airflow/blob/main/Example.luau)
