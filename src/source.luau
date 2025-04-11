@@ -51,6 +51,12 @@ export type Elements = {
 		Destroy : (self ) -> nil,
 		SetValue : (self ,Value : string & Enum.KeyCode) -> any,
 	},
+	AddColorPicker : (self,config : GlobalConfig) -> {
+		Edit : (self, Value: string) -> nil,
+		SetValue : (self, Value: Color3) -> nil,
+		Visible : (self , Value: boolean) -> nil,
+		Destroy : (self ) -> nil,
+	},
 	AddParagraph : (self,config : GlobalConfig) -> {
 		EditName : (self, Value: string) -> nil,
 		EditContent : (self, Value: string) -> nil,
@@ -109,6 +115,8 @@ do
 	AirflowUI.ResetOnSpawn = false;
 	AirflowUI.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 	AirflowUI.IgnoreGuiInset = true;
+	
+	protect_gui(AirflowUI);
 end;
 
 -- Airflow --
@@ -124,6 +132,7 @@ local Airflow = {
 		UnlockMouse = false,
 		IconSize = 20,
 	},
+	Features = {},
 	Lucide = {
 		["lucide-accessibility"] = "rbxassetid://10709751939",
 		["lucide-activity"] = "rbxassetid://10709752035",
@@ -1115,6 +1124,483 @@ function Airflow:Hover(element : Frame)
 	end)
 end;
 
+-- Color Picker --
+do
+	local ColorPicker = Instance.new("Frame")
+	local UICorner = Instance.new("UICorner")
+	local UIStroke = Instance.new("UIStroke")
+	local ColorPick = Instance.new("ImageLabel")
+	local UICorner_2 = Instance.new("UICorner")
+	local mouse = Instance.new("ImageLabel")
+	local ColorSelect = Instance.new("Frame")
+	local UIGradient = Instance.new("UIGradient")
+	local UICorner_3 = Instance.new("UICorner")
+	local move = Instance.new("Frame")
+	local left = Instance.new("Frame")
+	local right = Instance.new("Frame")
+	local Copy = Instance.new("Frame")
+	local UICorner_4 = Instance.new("UICorner")
+	local Text = Instance.new("TextLabel")
+	local Paste = Instance.new("Frame")
+	local UICorner_5 = Instance.new("UICorner")
+	local Text_2 = Instance.new("TextLabel")
+
+	ColorPicker.Name = "ColorPicker"
+	ColorPicker.Parent = Airflow.ScreenGui;
+	ColorPicker.AnchorPoint = Vector2.new(0.5, 0.5)
+	ColorPicker.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+	ColorPicker.BackgroundTransparency = 0.89
+	ColorPicker.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ColorPicker.BorderSizePixel = 0
+	ColorPicker.ClipsDescendants = true
+	ColorPicker.Position = UDim2.new(0.845068753, 0, 0.606334031, 0)
+	ColorPicker.Size = UDim2.new(0.100000001, 100, 0.100000001, 100)
+	ColorPicker.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	ColorPicker.ZIndex = 105;
+	ColorPicker.Visible = false;
+	
+	ColorPicker:GetPropertyChangedSignal('BackgroundTransparency'):Connect(function()
+		if ColorPicker.BackgroundTransparency <= 0.9 then
+			ColorPicker.Visible = true;
+		else
+			ColorPicker.Visible = false;
+		end;
+	end)
+	
+	Airflow.Features.ColorPickerRoot = ColorPicker;
+	
+	UICorner.CornerRadius = UDim.new(0, 5)
+	UICorner.Parent = ColorPicker
+
+	UIStroke.Transparency = 1
+	UIStroke.Color = Color3.fromRGB(83, 83, 83)
+	UIStroke.Parent = ColorPicker
+
+	ColorPick.Name = "ColorPick"
+	ColorPick.Parent = ColorPicker
+	ColorPick.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
+	ColorPick.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ColorPick.BorderSizePixel = 0
+	ColorPick.Position = UDim2.new(0, 10, 0, 10)
+	ColorPick.Size = UDim2.new(0.75, 0, 0.75, 0)
+	ColorPick.ZIndex = 107
+	ColorPick.Image = "rbxassetid://4155801252"
+	ColorPick.ImageTransparency = 1;
+	ColorPick.BackgroundTransparency = 1;
+	
+	UICorner_2.CornerRadius = UDim.new(0, 3)
+	UICorner_2.Parent = ColorPick
+
+	mouse.Name = "mouse"
+	mouse.Parent = ColorPick
+	mouse.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	mouse.BackgroundTransparency = 1.000
+	mouse.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	mouse.BorderSizePixel = 0
+	mouse.Position = UDim2.new(0, 15, 0, 15)
+	mouse.Size = UDim2.new(0, 15, 0, 15)
+	mouse.ZIndex = 107
+	mouse.Image = "http://www.roblox.com/asset/?id=4805639000"
+	mouse.ImageTransparency = 1;
+	mouse.AnchorPoint = Vector2.new(0.5,0.5);
+
+	ColorSelect.Name = "ColorSelect"
+	ColorSelect.Parent = ColorPicker
+	ColorSelect.AnchorPoint = Vector2.new(1, 0)
+	ColorSelect.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ColorSelect.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ColorSelect.BorderSizePixel = 0
+	ColorSelect.Position = UDim2.new(1, -10, 0, 10)
+	ColorSelect.Size = UDim2.new(0.100000001, -3, 0.75, 0)
+	ColorSelect.SizeConstraint = Enum.SizeConstraint.RelativeYY
+	ColorSelect.ZIndex = 107
+	ColorSelect.BackgroundTransparency = 1;
+
+	UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(0.10, Color3.fromRGB(255, 153, 0)), ColorSequenceKeypoint.new(0.20, Color3.fromRGB(203, 255, 0)), ColorSequenceKeypoint.new(0.30, Color3.fromRGB(50, 255, 0)), ColorSequenceKeypoint.new(0.40, Color3.fromRGB(0, 255, 102)), ColorSequenceKeypoint.new(0.50, Color3.fromRGB(0, 255, 255)), ColorSequenceKeypoint.new(0.60, Color3.fromRGB(0, 101, 255)), ColorSequenceKeypoint.new(0.70, Color3.fromRGB(50, 0, 255)), ColorSequenceKeypoint.new(0.80, Color3.fromRGB(204, 0, 255)), ColorSequenceKeypoint.new(0.90, Color3.fromRGB(255, 0, 153)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(255, 0, 0))}
+	UIGradient.Rotation = 90
+	UIGradient.Parent = ColorSelect
+
+	UICorner_3.CornerRadius = UDim.new(0, 3)
+	UICorner_3.Parent = ColorSelect
+
+	move.Name = "move"
+	move.Parent = ColorSelect
+	move.AnchorPoint = Vector2.new(0.5, 0)
+	move.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	move.BackgroundTransparency = 1.000
+	move.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	move.BorderSizePixel = 0
+	move.Position = UDim2.new(0.5, 0, 0, 15)
+	move.Size = UDim2.new(1, 8, 0, 2)
+	move.ZIndex = 108
+
+	left.Name = "left"
+	left.Parent = move
+	left.AnchorPoint = Vector2.new(0, 0.5)
+	left.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	left.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	left.BorderSizePixel = 0
+	left.Position = UDim2.new(0, 0, 0.5, 0)
+	left.Size = UDim2.new(0, 7, 1, 0)
+	left.ZIndex = 109
+	left.BackgroundTransparency = 1;
+
+	right.Name = "right"
+	right.Parent = move
+	right.AnchorPoint = Vector2.new(1, 0.5)
+	right.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	right.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	right.BorderSizePixel = 0
+	right.Position = UDim2.new(1, 0, 0.5, 0)
+	right.Size = UDim2.new(0, 7, 1, 0)
+	right.ZIndex = 109
+	right.BackgroundTransparency = 1
+
+	Copy.Name = "Copy"
+	Copy.Parent = ColorPicker
+	Copy.AnchorPoint = Vector2.new(0, 1)
+	Copy.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+	Copy.BackgroundTransparency = 0.800
+	Copy.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Copy.BorderSizePixel = 0
+	Copy.ClipsDescendants = true
+	Copy.Position = UDim2.new(0, 10, 1, -5)
+	Copy.Size = UDim2.new(0.5, -12, 0, 22)
+	Copy.ZIndex = 300
+
+	UICorner_4.CornerRadius = UDim.new(0, 4)
+	UICorner_4.Parent = Copy
+
+	Text.Name = "Text"
+	Text.Parent = Copy
+	Text.AnchorPoint = Vector2.new(0.5, 0.5)
+	Text.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Text.BackgroundTransparency = 1.000
+	Text.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Text.BorderSizePixel = 0
+	Text.Position = UDim2.new(0.5, 0, 0.5, 0)
+	Text.Size = UDim2.new(1, -20, 0, 20)
+	Text.ZIndex = 300
+	Text.Font = Enum.Font.GothamMedium
+	Text.Text = "Copy"
+	Text.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Text.TextSize = 14.000
+	Text.TextWrapped = true
+	Text.TextTransparency = 1;
+
+	Paste.Name = "Paste"
+	Paste.Parent = ColorPicker
+	Paste.AnchorPoint = Vector2.new(1, 1)
+	Paste.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+	Paste.BackgroundTransparency = 0.800
+	Paste.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Paste.BorderSizePixel = 0
+	Paste.ClipsDescendants = true
+	Paste.Position = UDim2.new(1, -10, 1, -5)
+	Paste.Size = UDim2.new(0.5, -12, 0, 22)
+	Paste.ZIndex = 300
+
+	UICorner_5.CornerRadius = UDim.new(0, 4)
+	UICorner_5.Parent = Paste
+
+	Text_2.Name = "Text"
+	Text_2.Parent = Paste
+	Text_2.AnchorPoint = Vector2.new(0.5, 0.5)
+	Text_2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Text_2.BackgroundTransparency = 1.000
+	Text_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Text_2.BorderSizePixel = 0
+	Text_2.Position = UDim2.new(0.5, 0, 0.5, 0)
+	Text_2.Size = UDim2.new(1, -20, 0, 20)
+	Text_2.ZIndex = 300
+	Text_2.Font = Enum.Font.GothamMedium
+	Text_2.Text = "Paste"
+	Text_2.TextColor3 = Color3.fromRGB(255, 255, 255)
+	Text_2.TextSize = 14.000
+	Text_2.TextWrapped = true
+	Text_2.TextTransparency = 1;
+	
+	Airflow.Features.ColorPickerToggle = false;
+	Airflow.Features.ColorDefault = Color3.fromRGB(255,255,255);
+	Airflow.Features.CopyColor =Airflow.Features.ColorDefault;
+	Airflow.Features.Callback = nil;
+
+	Airflow:Hover(Copy);
+	Airflow:Hover(Paste);
+
+	Airflow:NewInput(Copy,function()
+		Airflow.Features.CopyColor =Airflow.Features.ColorDefault;
+	end);
+
+	Airflow:NewInput(Paste,function()
+		local H,S,V = Airflow.Features.CopyColor:ToHSV();
+		
+		Airflow.Features.ColorDefault = Airflow.Features.CopyColor;
+		
+		Airflow:CreateAnimation(ColorPick,0.5,nil,{
+			BackgroundColor3 = Color3.fromHSV(H,1,1);
+		})
+
+		Airflow:CreateAnimation(mouse,0.5,nil,{
+			Position = UDim2.new(S, 0,1 - V, 0)
+		})
+
+		Airflow:CreateAnimation(move,0.5,nil,{
+			Position = UDim2.new(0.5,0,H,0)
+		})
+		
+		if Airflow.Features.Callback then
+			task.spawn(Airflow.Features.Callback,Airflow.Features.ColorDefault)	
+		end;
+	end);
+
+	local OldCode = 0;
+	local CodeH,CodeV = 1, 1;
+
+	do
+		UserInputService.InputBegan:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				if not Airflow:IsMouseOverFrame(ColorPicker) then
+					Airflow.Features:OnColorPicker(false)
+				end;
+			end;
+		end)
+
+		ColorSelect.InputBegan:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do task.wait()
+					local ColorY = ColorSelect.AbsolutePosition.Y
+					local ColorYM = ColorY + ColorSelect.AbsoluteSize.Y;
+					local Value = math.clamp(Mouse.Y, ColorY, ColorYM)
+					local Code = ((Value - ColorY) / (ColorYM - ColorY));
+
+					Airflow.Features.ColorDefault = Color3.fromHSV(Code, CodeH, CodeV);
+
+					if Airflow.Features.Callback then
+						task.spawn(Airflow.Features.Callback,Airflow.Features.ColorDefault)	
+					end;
+
+					Airflow:CreateAnimation(move,0.5,nil,{
+						Position = UDim2.new(0.5,0,Code,0)
+					})
+
+					Airflow:CreateAnimation(ColorPick,0.5,nil,{
+						BackgroundColor3 = Color3.fromHSV(Code, 1, 1)
+					});
+
+					if Code > OldCode then
+						Airflow:CreateAnimation(left,0.2,nil,{
+							Rotation = 45
+						})
+
+						Airflow:CreateAnimation(right,0.2,nil,{
+							Rotation = -45
+						})
+					elseif Code < OldCode then
+						Airflow:CreateAnimation(left,0.2,nil,{
+							Rotation = -45
+						})
+
+						Airflow:CreateAnimation(right,0.2,nil,{
+							Rotation = 45
+						})
+					else
+						Airflow:CreateAnimation(left,0.2,nil,{
+							Rotation = 0
+						})
+
+						Airflow:CreateAnimation(right,0.2,nil,{
+							Rotation = 0
+						})
+					end;
+
+					OldCode = Code;
+				end;
+
+				Airflow:CreateAnimation(left,0.5,nil,{
+					Rotation = 0
+				})
+
+				Airflow:CreateAnimation(right,0.5,nil,{
+					Rotation = 0
+				})
+			end;
+		end);
+
+		ColorPick.InputBegan:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do task.wait();
+					local PosX = ColorPick.AbsolutePosition.X
+					local ScaleX = PosX + ColorPick.AbsoluteSize.X
+					local Value, PosY = math.clamp(Mouse.X, PosX, ScaleX), ColorPick.AbsolutePosition.Y
+					local ScaleY = PosY + ColorPick.AbsoluteSize.Y
+					local Vals = math.clamp(Mouse.Y, PosY, ScaleY)
+
+					CodeH = (Value - PosX) / (ScaleX - PosX);
+					CodeV = (1 - ((Vals - PosY) / (ScaleY - PosY)));
+
+					Airflow.Features.ColorDefault = Color3.fromHSV(OldCode, CodeH, CodeV);
+
+					if Airflow.Features.Callback then
+						task.spawn(Airflow.Features.Callback,Airflow.Features.ColorDefault)	
+					end;
+
+					Airflow:CreateAnimation(mouse,0.2,nil,{
+						Position = UDim2.new(CodeH, 0, 1 - CodeV, 0)
+					})
+				end
+			end
+		end)
+	end;
+
+	function Airflow.Features:SetColor(Color : Color3)
+		local H , S , V = Color:ToHSV();
+		Airflow.Features.ColorDefault = Color;
+
+		OldCode = H;
+		CodeH = S;
+		CodeV = V;
+	end;
+
+	function Airflow.Features:SetPosition(Position : UDim2)
+		Airflow:CreateAnimation(ColorPicker,0.5,nil,{
+			Position = Position
+		})
+	end;
+
+	function Airflow.Features:OnColorPicker(Value : boolean)
+		Airflow.Features.ColorPickerToggle = Value;
+
+		if Value then
+			local H , S , V = Airflow.Features.ColorDefault:ToHSV();
+
+			Airflow:CreateAnimation(ColorPicker,0.5,nil,{
+				BackgroundTransparency = 0.2,
+				Size = UDim2.new(0.100000001, 100, 0.100000001, 100),
+			})
+
+			Airflow:CreateAnimation(UIStroke,0.5,nil,{
+				Transparency = 0.570
+			})
+
+			Airflow:CreateAnimation(ColorPick,0.75,nil,{
+				ImageTransparency = 0;
+				BackgroundTransparency = 0;
+				BackgroundColor3 = Color3.fromHSV(H,1,1);
+			})
+
+			Airflow:CreateAnimation(mouse,0.5,nil,{
+				ImageTransparency = 0;
+				Position = UDim2.new(S, 0,1 - V, 0)
+			})
+
+			Airflow:CreateAnimation(ColorSelect,0.5,nil,{
+				BackgroundTransparency = 0;
+			})
+
+			Airflow:CreateAnimation(move,0.5,nil,{
+				Position = UDim2.new(0.5,0,H,0)
+			})
+
+			Airflow:CreateAnimation(ColorSelect,0.5,nil,{
+				BackgroundTransparency = 0;
+			})
+
+			Airflow:CreateAnimation(left,0.5,nil,{
+				BackgroundTransparency = 0;
+			})
+
+			Airflow:CreateAnimation(right,0.5,nil,{
+				BackgroundTransparency = 0;
+			})
+
+			Airflow:CreateAnimation(Copy,0.5,nil,{
+				BackgroundTransparency = 0.8;
+			})
+
+			Airflow:CreateAnimation(Paste,0.5,nil,{
+				BackgroundTransparency = 0.8;
+			})
+
+			Airflow:CreateAnimation(Paste,0.5,nil,{
+				BackgroundTransparency = 0.8;
+			})
+
+			Airflow:CreateAnimation(Text,0.5,nil,{
+				TextTransparency = 0;
+			})
+
+			Airflow:CreateAnimation(Text_2,0.5,nil,{
+				TextTransparency = 0;
+			})
+		else
+			Airflow.Features.Callback = nil;
+
+			Airflow:CreateAnimation(move,0.5,nil,{
+				Position = UDim2.new(0.5,0,0,0)
+			})
+
+			Airflow:CreateAnimation(ColorPicker,0.5,nil,{
+				BackgroundTransparency = 1,
+				Size = UDim2.new(0.100000001 , 85, 0.100000001, 85)
+			})
+
+			Airflow:CreateAnimation(UIStroke,0.5,nil,{
+				Transparency = 1
+			})
+
+			Airflow:CreateAnimation(ColorPick,0.5,nil,{
+				ImageTransparency = 1;
+				BackgroundTransparency = 1;
+				BackgroundColor3 = Color3.fromRGB(0,0,0)
+			})
+
+			Airflow:CreateAnimation(mouse,0.5,nil,{
+				ImageTransparency = 1;
+				Position = UDim2.new(0,0,0,0)
+			})
+
+			Airflow:CreateAnimation(ColorSelect,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(ColorSelect,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(left,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(right,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(Copy,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(Paste,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(Paste,0.5,nil,{
+				BackgroundTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(Text,0.5,nil,{
+				TextTransparency = 1;
+			})
+
+			Airflow:CreateAnimation(Text_2,0.5,nil,{
+				TextTransparency = 1;
+			})
+		end;
+	end;
+	
+	Airflow.Features:OnColorPicker(false)
+end;
+
 function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfig: {[string]: any}) : Elements
 	local elements = {};
 	local delayTick = 0.05;
@@ -2010,6 +2496,159 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		};
 	end;
 	
+	function elements:AddColorPicker(config)
+		config = config or {};
+		config.Name = config.Name or "ColorPicker";
+		config.Default = config.Default or Color3.fromRGB(255,255,255);
+		config.Callback = config.Callback or function() end;
+		
+		local ColorPickerFrame = Instance.new("Frame")
+		local UICorner = Instance.new("UICorner")
+		local PText = Instance.new("TextLabel")
+		local block = Instance.new("Frame")
+		local UICorner_2 = Instance.new("UICorner")
+		local UIStroke = Instance.new("UIStroke")
+		local TextButton = Instance.new("TextButton")
+
+		ColorPickerFrame.Name = "ColorPickerFrame"
+		ColorPickerFrame.Parent = element;
+		ColorPickerFrame.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+		ColorPickerFrame.BackgroundTransparency = 1
+		ColorPickerFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		ColorPickerFrame.BorderSizePixel = 0
+		ColorPickerFrame.Size = UDim2.new(1, -2, 0, 40)
+		ColorPickerFrame.ZIndex = 6
+
+		UICorner.CornerRadius = UDim.new(0, 4)
+		UICorner.Parent = ColorPickerFrame
+
+		PText.Name = "PText"
+		PText.Parent = ColorPickerFrame
+		PText.AnchorPoint = Vector2.new(0, 0.5)
+		PText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		PText.BackgroundTransparency = 1.000
+		PText.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		PText.BorderSizePixel = 0
+		PText.Position = UDim2.new(0, 10, 0.5, 0)
+		PText.Size = UDim2.new(1, 50, 0, 20)
+		PText.ZIndex = 7
+		PText.Font = Enum.Font.GothamMedium
+		PText.Text = config.Name
+		PText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		PText.TextSize = 13.000
+		PText.TextTransparency = 1
+		PText.TextWrapped = true
+		
+		PText.TextXAlignment = Enum.TextXAlignment.Left
+
+		block.Name = "block"
+		block.Parent = ColorPickerFrame
+		block.AnchorPoint = Vector2.new(1, 0.5)
+		block.BackgroundColor3 = config.Default;
+		block.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		block.BorderSizePixel = 0
+		block.Position = UDim2.new(1, -10, 0.5, 0)
+		block.Size = UDim2.new(0, 45, 0, 20)
+		block.ZIndex = 7
+		block.BackgroundTransparency = 1;
+		
+		UICorner_2.CornerRadius = UDim.new(0, 4)
+		UICorner_2.Parent = block
+
+		UIStroke.Transparency = 0.380
+		UIStroke.Color = Color3.fromRGB(88, 88, 88)
+		UIStroke.Parent = block
+
+		TextButton.Parent = ColorPickerFrame
+		TextButton.BackgroundTransparency = 1.000
+		TextButton.Size = UDim2.new(1, 0, 1, 0)
+		TextButton.ZIndex = 16
+		TextButton.TextTransparency = 1.000
+
+		if OnChange:GetAttribute('Value') then
+			task.delay(0.5,Airflow.CreateAnimation,Airflow,block,0.5,nil,{
+				BackgroundTransparency = 0
+			})
+
+			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
+				TextTransparency = 0.3
+			})
+
+			task.delay(0.4,Airflow.CreateAnimation,Airflow,ColorPickerFrame,0.5,nil,{
+				BackgroundTransparency = 0.800,
+			})
+		end;
+		
+		local Detector = function(color)
+			config.Default = color;
+			
+			Airflow:CreateAnimation(block,0.7,nil,{
+				BackgroundColor3 = config.Default;
+			});
+			
+			config.Callback(color);
+		end;
+		
+		TextButton.MouseButton1Click:Connect(function()
+			task.wait();
+			Airflow.Features.ColorPickerToggle = not Airflow.Features.ColorPickerToggle;
+			Airflow.Features:SetColor(config.Default);
+			Airflow.Features:OnColorPicker(Airflow.Features.ColorPickerToggle);
+			Airflow.Features:SetPosition(UDim2.fromOffset(block.AbsolutePosition.X,block.AbsolutePosition.Y));
+			Airflow.Features.Callback = Detector;
+		end)
+
+		Airflow:Hover(ColorPickerFrame);
+
+		return {
+			Edit = function(self , Value)
+				PText.Text = Value;
+			end,
+			
+			SetValue = Detector,
+			
+			Visible = function(self , Value)
+				ColorPickerFrame.Visible = Value		
+			end,
+
+			Destroy = function(self)
+				ColorPickerFrame:Destroy();		
+			end,
+
+			Signal = OnChange.Event:Connect(function(value)
+				if value then
+					task.wait(delayTick);
+
+					Airflow:CreateAnimation(ColorPickerFrame,0.7,nil,{
+						BackgroundTransparency = 0.800,
+					})
+
+					Airflow:CreateAnimation(PText,0.6,nil,{
+						TextTransparency = 0.3
+					})
+
+					Airflow:CreateAnimation(block,0.7,nil,{
+						BackgroundTransparency = 0,
+						BackgroundColor3 = config.Default,
+					})
+				else
+					Airflow:CreateAnimation(ColorPickerFrame,0.5,nil,{
+						BackgroundTransparency = 1,
+					})
+
+					Airflow:CreateAnimation(PText,0.5,nil,{
+						TextTransparency = 1
+					})
+
+					Airflow:CreateAnimation(block,0.5,nil,{
+						BackgroundTransparency = 1,
+						BackgroundColor3 = Color3.fromRGB(0,0,0),
+					})
+				end
+			end)
+		};
+	end;
+	
 	function elements:AddParagraph(config)
 		config = config or {};
 		config.Name = config.Name or "Paragraph";
@@ -2766,6 +3405,12 @@ function Airflow:Init(config)
 			end
 		end;
 	end;
+	
+	task.delay(0.5,function()
+		if Airflow.Features.ColorPickerRoot then
+			Airflow.Features.ColorPickerRoot.Parent = AirflowWindow;
+		end;
+	end)
 	
 	AirflowWindow.Name = ".Airflow="..Airflow:RandomString()
 	AirflowWindow.Parent = CoreGui;
@@ -3925,18 +4570,18 @@ function Airflow:DrawList(config)
 		value.TextXAlignment = Enum.TextXAlignment.Right
 		
 		return {
-			SetKey = function(self , Value)
-				config.Key = Value;
+			SetKey = function(self , value)
+				config.Key = value;
 				name.Text = config.Key
 			end,
 			
-			SetValue = function(self , Value)
-				config.Value = Value;
+			SetValue = function(self , value)
+				config.Value = value;
 				value.Text = config.Value
 			end,
 			
-			Visible = function(self , Value)
-				Frame.Visible = Value;
+			Visible = function(self , value)
+				Frame.Visible = value;
 			end,
 		}
 	end;
