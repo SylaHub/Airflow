@@ -13,5 +13,6 @@ CS:GO - Cheat UI
 local Airflow = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/4lpaca-pin/Airflow/refs/heads/main/src/source.luau"))();
 ```
 
-## 📜 Document
+## 📜 Usage
 - [Example](https://github.com/4lpaca-pin/Airflow/blob/main/Example.luau)
+- [Document](https://cat-sus.gitbook.io/airflow)
