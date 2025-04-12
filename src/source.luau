@@ -115,7 +115,7 @@ do
 	AirflowUI.ResetOnSpawn = false;
 	AirflowUI.ZIndexBehavior = Enum.ZIndexBehavior.Global;
 	AirflowUI.IgnoreGuiInset = true;
-	
+
 	protect_gui(AirflowUI);
 end;
 
@@ -132,6 +132,7 @@ local Airflow = {
 		UnlockMouse = false,
 		IconSize = 20,
 	},
+	FileManager = {},
 	Features = {},
 	Lucide = {
 		["lucide-accessibility"] = "rbxassetid://10709751939",
@@ -955,6 +956,93 @@ local Airflow = {
 	},
 };
 
+-- File Manager --
+do
+	
+	local SetBlock = function(element , type , value)
+		if type == "Keybind" then
+			element:SetValue(value);
+		elseif type == "Toggle" then
+			element:SetValue(value);
+		elseif type == "Dropdown" then
+			element:SetDefault(value);
+		elseif type == "Slider" then
+			element:SetValue(value);
+		elseif type == "ColorPicker" then
+			element:SetValue(Color3.fromRGB(value[1],value[2],value[3]));
+		end;
+	end;
+	
+	local ParserObject = function(model, cfg)
+		for i,v in next , cfg do
+			local element = model:GetElementFromKey(i);
+			local Type = string.split(i,'_')[1];
+
+			if element.Type == Type then
+				SetBlock(element.API,element.Type,v.Value)
+			else
+				warn("Type mismatch:","["..element.Type.."]","["..Type.."]")
+			end;
+		end;
+	end;
+	
+	local Parser = function(config , window,VERSION : string)
+		local WinCFG = window:GetConfigs();
+		
+		if WinCFG.VERSION ~= VERSION then
+			warn("VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]");
+			return "VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]";
+		end;
+		
+		for Tab,Value in next , config do
+			local WindowTab : Tab = window:GetTabFromKey(tostring(Tab));
+			
+			if WindowTab then
+				
+				local Left = Value.Left;
+				local Right = Value.Right;
+				local Sections = Value.Sections;
+				
+				ParserObject(WindowTab.Left,Left);
+				ParserObject(WindowTab.Right,Right);
+				
+				for i,v in next , Sections do
+					local Section = WindowTab:GetSectionFromKey(i);
+					
+					if Section then
+						ParserObject(Section,v);
+					else
+						warn('Section not found +1',i)
+					end;
+				end;
+			else
+				warn('Tab not found +1');
+			end;
+		end;
+	end;
+	
+	function Airflow.FileManager:WriteConfig(Window,path : string)
+		local config = Window:GetConfig();
+		
+		if writefile then
+			writefile(path,game:GetService('HttpService'):JSONEncode(config));
+		end;
+	end;
+	
+	function Airflow.FileManager:LoadConfig(Window,path : string,VERSION : string)
+		local content = readfile(path);
+		local Code = game:GetService('HttpService'):JSONDecode(content);
+		
+		return Parser(Code,Window,VERSION);
+	end;
+	
+	function Airflow.FileManager:LoadConfigFromString(Window,str : string,VERSION : string)
+		local Code = game:GetService('HttpService'):JSONDecode(str);
+		
+		return Parser(Code,Window,VERSION);
+	end;
+end;
+
 function Airflow:LoadAssets() : nil
 	for i,v in next , Airflow.Lucide do
 		game:GetService('ContentProvider'):Preload(v);
@@ -994,9 +1082,9 @@ function Airflow:Blur(element : Frame) : RBXScriptSignal
 	local DepthOfField = Instance.new('DepthOfFieldEffect',cloneref(game:GetService('Lighting')));
 	local BlockMesh = Instance.new("BlockMesh");
 	local userSettings = UserSettings():GetService("UserGameSettings");
-	
+
 	BlockMesh.Parent = Part;
-	
+
 	Part.Material = Enum.Material.Glass;
 	Part.Transparency = 1;
 	Part.Reflectance = 1;
@@ -1007,26 +1095,26 @@ function Airflow:Blur(element : Frame) : RBXScriptSignal
 	Part.CollisionGroup = Airflow:RandomString();
 	Part.Size = Vector3.new(1, 1, 1) * 0.01;
 	Part.Color = Color3.fromRGB(0,0,0);
-	
+
 	DepthOfField.Enabled = true;
 	DepthOfField.FarIntensity = 0;
 	DepthOfField.FocusDistance = 0;
 	DepthOfField.InFocusRadius = 1000;
 	DepthOfField.NearIntensity = 1;
 	DepthOfField.Name = Airflow:RandomString();
-	
+
 	Part.Name = Airflow:RandomString();
-	
+
 	return RunService.RenderStepped:Connect(function()
 		if element.BackgroundTransparency < 0.7 then
 			Airflow:CreateAnimation(DepthOfField,0.1,nil,{
 				NearIntensity = 1
 			})
-			
+
 			Airflow:CreateAnimation(Part,0.1,nil,{
 				Transparency = 0.97,
 			})
-			
+
 			Airflow:CreateAnimation(Part,0.3,nil,{
 				Size = Vector3.new(1, 1, 1) * 0.01;
 			})
@@ -1034,16 +1122,16 @@ function Airflow:Blur(element : Frame) : RBXScriptSignal
 			Airflow:CreateAnimation(DepthOfField,0.1,nil,{
 				NearIntensity = 0
 			})
-			
+
 			Airflow:CreateAnimation(Part,0.3,nil,{
 				Size = Vector3.zero;
 			})
-			
+
 			Airflow:CreateAnimation(Part,0.1,nil,{
 				Transparency = 1.5,
 			})
 		end;
-		
+
 		if element.BackgroundTransparency <= 0.95 then
 			local corner0 = element.AbsolutePosition;
 			local corner1 = corner0 + element.AbsoluteSize;
@@ -1086,9 +1174,9 @@ end;
 
 function Airflow:CreateAnimation(Instance: Instance , Time: number , Style : Enum.EasingStyle , Property : {[string] : any}) : Tween
 	local Tween = TweenService:Create(Instance,TweenInfo.new(Time or 1 , Style or Enum.EasingStyle.Quint),Property);
-	
+
 	Tween:Play();
-	
+
 	return Tween;
 end;
 
@@ -1110,13 +1198,13 @@ end;
 function Airflow:Hover(element : Frame)
 	local Original = Color3.fromRGB(91, 91, 91);
 	local Hover = Color3.fromRGB(144, 144, 144);
-	
+
 	element.MouseEnter:Connect(function()
 		Airflow:CreateAnimation(element,0.35,nil,{
 			BackgroundColor3 = Hover
 		})
 	end)
-	
+
 	element.MouseLeave:Connect(function()
 		Airflow:CreateAnimation(element,0.35,nil,{
 			BackgroundColor3 = Original
@@ -1167,9 +1255,9 @@ do
 			ColorPicker.Visible = false;
 		end;
 	end)
-	
+
 	Airflow.Features.ColorPickerRoot = ColorPicker;
-	
+
 	UICorner.CornerRadius = UDim.new(0, 5)
 	UICorner.Parent = ColorPicker
 
@@ -1188,7 +1276,7 @@ do
 	ColorPick.Image = "rbxassetid://4155801252"
 	ColorPick.ImageTransparency = 1;
 	ColorPick.BackgroundTransparency = 1;
-	
+
 	UICorner_2.CornerRadius = UDim.new(0, 3)
 	UICorner_2.Parent = ColorPick
 
@@ -1320,7 +1408,7 @@ do
 	Text_2.TextSize = 14.000
 	Text_2.TextWrapped = true
 	Text_2.TextTransparency = 1;
-	
+
 	Airflow.Features.ColorPickerToggle = false;
 	Airflow.Features.ColorDefault = Color3.fromRGB(255,255,255);
 	Airflow.Features.CopyColor =Airflow.Features.ColorDefault;
@@ -1335,9 +1423,9 @@ do
 
 	Airflow:NewInput(Paste,function()
 		local H,S,V = Airflow.Features.CopyColor:ToHSV();
-		
+
 		Airflow.Features.ColorDefault = Airflow.Features.CopyColor;
-		
+
 		Airflow:CreateAnimation(ColorPick,0.5,nil,{
 			BackgroundColor3 = Color3.fromHSV(H,1,1);
 		})
@@ -1349,7 +1437,7 @@ do
 		Airflow:CreateAnimation(move,0.5,nil,{
 			Position = UDim2.new(0.5,0,H,0)
 		})
-		
+
 		if Airflow.Features.Callback then
 			task.spawn(Airflow.Features.Callback,Airflow.Features.ColorDefault)	
 		end;
@@ -1382,9 +1470,9 @@ do
 
 		ColorSelect.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-                IsPressM1 = true;
+				IsPressM1 = true;
 
-                while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait()
+				while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait()
 					local ColorY = ColorSelect.AbsolutePosition.Y
 					local ColorYM = ColorY + ColorSelect.AbsoluteSize.Y;
 					local Value = math.clamp(Mouse.Y, ColorY, ColorYM)
@@ -1445,9 +1533,9 @@ do
 
 		ColorPick.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-			    IsPressM1 = true;
+				IsPressM1 = true;
 
-                while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait();
+				while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait();
 					local PosX = ColorPick.AbsolutePosition.X
 					local ScaleX = PosX + ColorPick.AbsoluteSize.X
 					local Value, PosY = math.clamp(Mouse.X, PosX, ScaleX), ColorPick.AbsolutePosition.Y
@@ -1615,17 +1703,21 @@ do
 			})
 		end;
 	end;
-	
+
 	Airflow.Features:OnColorPicker(false)
 end;
 
 function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfig: {[string]: any}) : Elements
 	local elements = {};
 	local delayTick = 0.05;
+	local ElementConfigs = {};
+	local ElementId = 1;
+	local ElementIDs = {};
 	
 	function elements:AddLabel(name)
 		local LabelFrame = Instance.new("TextLabel")
-
+		local ID = ElementId;
+		
 		LabelFrame.Name = Airflow:RandomString()
 		LabelFrame.Parent = element
 		LabelFrame.AnchorPoint = Vector2.new(0, 0.5)
@@ -1643,13 +1735,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		LabelFrame.TextWrapped = true
 		LabelFrame.TextXAlignment = Enum.TextXAlignment.Left
 		LabelFrame.TextTransparency = 1;
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.3,Airflow.CreateAnimation,Airflow,LabelFrame,0.5,nil,{
 				TextTransparency = 0;
 			})
 		end;
-		
+
 		local VisibleAnimation = function(value)
 			if value then
 				task.wait(delayTick);
@@ -1663,7 +1755,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				})
 			end
 		end;
-		
+
 		LabelFrame:GetPropertyChangedSignal('TextTransparency'):Connect(function()
 			if LabelFrame.TextTransparency >= 0.9 then
 				LabelFrame.Visible = false;
@@ -1671,8 +1763,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				LabelFrame.Visible = true;
 			end;
 		end);
-	
-		return {
+		
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				LabelFrame.Text = Value				
 			end,
@@ -1682,15 +1776,26 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Destroy = function(self)
 				LabelFrame:Destroy();		
 			end,
+			ID = ID,
 			Signal = OnChange.Event:Connect(VisibleAnimation)
 		};
+		
+		ElementIDs[ID] = {
+			Name = name,
+			ID = ID,
+			Type = "Label",
+			API = tableback,
+		};
+		
+		return tableback;
 	end;
-	
+
 	function elements:AddButton(config)
 		config = config or {};
 		config.Name = config.Name or "Button";
 		config.Callback = config.Callback or function() end;
 		
+		local ID = ElementId;
 		local ButtonFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -1704,7 +1809,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		ButtonFrame.ClipsDescendants = true
 		ButtonFrame.Size = UDim2.new(1, -6, 0, 30)
 		ButtonFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = ButtonFrame
 
@@ -1724,22 +1829,21 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextSize = 14.000
 		PText.TextWrapped = true
 		PText.TextTransparency = 1
-		
-	
+
 		Airflow:NewInput(ButtonFrame,config.Callback);
 		Airflow:Hover(ButtonFrame);
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0
 			})
-			
+
 			task.delay(0.4,Airflow.CreateAnimation,Airflow,ButtonFrame,0.5,nil,{
 				BackgroundTransparency = 0.800,
 				Size = UDim2.new(1, -2, 0, 34)
 			});
 		end;
-		
+
 		local VisibleAnimation = function(value)
 			if value then
 				task.wait(delayTick);
@@ -1764,7 +1868,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			end
 		end;
 		
-		return {
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
 			end,
@@ -1777,14 +1883,24 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			end,
 			Signal = OnChange.Event:Connect(VisibleAnimation)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Button",
+			API = tableback,
+		};
+		
+		return tableback
 	end;
-	
+
 	function elements:AddToggle(config)
 		config = config or {};
 		config.Name = config.Name or "Toggle";
 		config.Callback = config.Callback or function() end;
 		config.Default = config.Default or false;
 		
+		local ID = ElementId;
 		local ToggleFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -1802,7 +1918,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		ToggleFrame.ClipsDescendants = true
 		ToggleFrame.Size = UDim2.new(1, -6, 0, 30)
 		ToggleFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = ToggleFrame
 
@@ -1823,7 +1939,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
 		PText.TextXAlignment = Enum.TextXAlignment.Left
-		
+
 		block.Name = Airflow:RandomString()
 		block.Parent = ToggleFrame
 		block.AnchorPoint = Vector2.new(1, 0.5)
@@ -1834,7 +1950,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		block.Position = UDim2.new(1, -10, 0.5, 0)
 		block.Size = UDim2.new(0, 35, 0, 16)
 		block.ZIndex = 7
-		
+
 		UICorner_2.CornerRadius = UDim.new(1, 0)
 		UICorner_2.Parent = block
 
@@ -1849,10 +1965,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		circle.SizeConstraint = Enum.SizeConstraint.RelativeYY
 		circle.ZIndex = 8
 		circle.BackgroundTransparency = 1;
-		
+
 		UICorner_3.CornerRadius = UDim.new(1, 0)
 		UICorner_3.Parent = circle
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,circle,0.5,nil,{
 				BackgroundTransparency = 0
@@ -1868,7 +1984,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				Size = UDim2.new(1, -2, 0, 34)
 			})
 		end;
-		
+
 		local Change = function(value)
 			if value then
 				Airflow:CreateAnimation(circle,0.5,nil,{
@@ -1882,39 +1998,54 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				});
 			end;
 		end;
-		
+
 		Change(config.Default);
+		
+		ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
+			Value = config.Default;
+		};
 		
 		local BindableToggle = Instance.new("BindableEvent",ToggleFrame);
 		Airflow:NewInput(ToggleFrame,function()
 			config.Default = not config.Default;
-			
+
 			BindableToggle:Fire(config.Default);
+			
+			ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
+				Value = config.Default;
+			};
+			
 			Change(config.Default)
 			config.Callback(config.Default)
 		end);
-		
+
 		Airflow:Hover(ToggleFrame);
 		
-		return {
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
 			end,
-			
+
 			SetValue = function(self , Value)
 				config.Default = Value;
-				Change(config.Default)
+				Change(config.Default);
+
+				ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
+					Value = config.Default;
+				};
 			end,
-			
+
 			Visible = function(self , Value)
 				ToggleFrame.Visible = Value		
 			end,
-			
+
 			AutomaticVisible = function(self , config) : RBXScriptSignal
 				config = config or {};
 				config.Target = config.Target;
 				config.Elements = config.Elements or {};
-				
+
 				local callback = function(val)
 					if val == config.Target then
 						for i ,v in next , config.Elements do
@@ -1926,16 +2057,16 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 						end;
 					end;
 				end;
-				
+
 				callback(config.Default);
-				
+
 				return BindableToggle.Event:Connect(callback);
 			end,
-	
+
 			Destroy = function(self)
 				ToggleFrame:Destroy();		
 			end,
-			
+
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
@@ -1948,27 +2079,27 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					Airflow:CreateAnimation(PText,0.7,nil,{
 						TextTransparency = 0.3
 					})
-					
+
 					Airflow:CreateAnimation(block,0.7,nil,{
 						BackgroundTransparency = 0.5
 					});
-					
+
 					Airflow:CreateAnimation(circle,0.7,nil,{
 						BackgroundTransparency = 0
 					})
-					
+
 					Change(config.Default);
 				else
 					Change(false);
-					
+
 					Airflow:CreateAnimation(block,0.5,nil,{
 						BackgroundTransparency = 1
 					});
-					
+
 					Airflow:CreateAnimation(circle,0.5,nil,{
 						BackgroundTransparency = 1
 					})
-					
+
 					Airflow:CreateAnimation(PText,0.5,nil,{
 						TextTransparency = 1
 					})
@@ -1980,8 +2111,18 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Toggle",
+			API = tableback,
+			IDCode = "Toggle_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback
 	end;
-	
+
 	function elements:AddSlider(config)
 		config = config or {};
 		config.Name = config.Name or "Slider";
@@ -1991,7 +2132,8 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Round = config.Round or 0;
 		config.Default = config.Default or config.Min;
 		config.Type = config.Type or "";
-
+		
+		local ID = ElementId;
 		local SliderFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2013,7 +2155,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		SliderFrame.BorderSizePixel = 0
 		SliderFrame.Size = UDim2.new(1, -6, 0, 44)
 		SliderFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = SliderFrame
 
@@ -2033,7 +2175,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
 		PText.TextXAlignment = Enum.TextXAlignment.Left
-		
+
 		VText.Name = Airflow:RandomString()
 		VText.Parent = SliderFrame
 		VText.AnchorPoint = Vector2.new(1, 0)
@@ -2051,7 +2193,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		VText.TextWrapped = true
 		VText.TextXAlignment = Enum.TextXAlignment.Right
 		VText.TextTransparency = 1;
-		
+
 		wheel.Name = Airflow:RandomString()
 		wheel.Parent = SliderFrame
 		wheel.AnchorPoint = Vector2.new(0.5, 1)
@@ -2062,7 +2204,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		wheel.Size = UDim2.new(1, -25, 0, 7)
 		wheel.ZIndex = 7
 		wheel.BackgroundTransparency = 1;
-		
+
 		UICorner_2.CornerRadius = UDim.new(0, 4)
 		UICorner_2.Parent = wheel
 
@@ -2074,7 +2216,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
 		slide.ZIndex = 8
 		slide.BackgroundTransparency = 1;
-		
+
 		UICorner_3.CornerRadius = UDim.new(0, 4)
 		UICorner_3.Parent = slide
 
@@ -2091,7 +2233,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		bth.Size = UDim2.new(0, 10, 0, 10)
 		bth.ZIndex = 9
 		bth.BackgroundTransparency = 1
-		
+
 		UICorner_4.CornerRadius = UDim.new(1, 0)
 		UICorner_4.Parent = bth
 
@@ -2099,42 +2241,46 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		UIStroke.Transparency = 1
 		UIStroke.Color = Color3.fromRGB(255, 255, 255)
 		UIStroke.Parent = bth	
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.7,Airflow.CreateAnimation,Airflow,UIStroke,0.5,nil,{
 				Transparency = 0.9,
 			})
-			
+
 			task.delay(0.6,Airflow.CreateAnimation,Airflow,bth,0.5,nil,{
 				BackgroundTransparency = 0,
 			})
-			
+
 			task.delay(0.55,Airflow.CreateAnimation,Airflow,slide,0.5,nil,{
 				BackgroundTransparency = 0,
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,wheel,0.5,nil,{
 				BackgroundTransparency = 0,
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,VText,0.5,nil,{
 				TextTransparency = 0,
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0.3,
 			})
-			
+
 			task.delay(0.4,Airflow.CreateAnimation,Airflow,SliderFrame,0.5,nil,{
 				BackgroundTransparency = 0.800,
 				Size = UDim2.new(1, -2, 0, 50)
 			})
 		end
-		
+
 		Airflow:Hover(SliderFrame)
 		
-		local IsHold = false;
+		ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
+			Value = config.Default,
+		};
 		
+		local IsHold = false;
+
 		local function update(Input)
 			local SizeScale = math.clamp((((Input.Position.X) - wheel.AbsolutePosition.X) / wheel.AbsoluteSize.X), 0, 1);
 			local Main = ((config.Max - config.Min) * SizeScale) + config.Min;
@@ -2145,10 +2291,14 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			TweenService:Create(slide , TweenInfo.new(0.2),{
 				Size = UDim2.new(normalized, 0, 1, 0)
 			}):Play();
-			
+
 			config.Default = Value;
 			VText.Text = tostring(Value)..tostring(config.Type)
-
+			
+			ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
+				Value = config.Default,
+			};
+			
 			config.Callback(Value,config)
 		end;
 
@@ -2187,14 +2337,20 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			end;
 		end);
 		
-		return {
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
 			end,
-			
+
 			SetValue = function(self , Value)
 				config.Default = Value;
-				slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
+				slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0);
+
+				ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
+					Value = config.Default,
+				};
 			end,
 
 			Visible = function(self , Value)
@@ -2204,7 +2360,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Destroy = function(self)
 				SliderFrame:Destroy();		
 			end,
-			
+
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
@@ -2217,24 +2373,24 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					Airflow:CreateAnimation(PText,0.7,nil,{
 						TextTransparency = 0.3
 					})
-					
+
 					Airflow:CreateAnimation(VText,0.6,nil,{
 						TextTransparency = 0,
 					})
-					
+
 					Airflow:CreateAnimation(wheel,0.7,nil,{
 						BackgroundTransparency = 0,
 					})
-					
+
 					Airflow:CreateAnimation(slide,0.7,nil,{
 						BackgroundTransparency = 0,
 						Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
 					})
-					
+
 					Airflow:CreateAnimation(bth,0.6,nil,{
 						BackgroundTransparency = 0,
 					})
-					
+
 					Airflow:CreateAnimation(UIStroke,0.7,nil,{
 						Transparency = 0.9,
 					})
@@ -2271,8 +2427,18 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Slider",
+			API = tableback,
+			IDCode = "Slider_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback
 	end;
-	
+
 	function elements:AddKeybind(config)
 		config = config or {};
 		config.Name = config.Name or "Keybind";
@@ -2309,7 +2475,8 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Equals = "=",
 			LeftSuper = "Windows"
 		};
-
+		
+		local ID = ElementId;
 		local GetItem = function(item)
 			if item then
 				if typeof(item) == 'EnumItem' then
@@ -2321,7 +2488,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				return 'NONE';
 			end;
 		end;
-		
+
 		local KeybindFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2338,7 +2505,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		KeybindFrame.ClipsDescendants = true
 		KeybindFrame.Size = UDim2.new(1, -6, 0, 30)
 		KeybindFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = KeybindFrame
 
@@ -2359,7 +2526,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
 		PText.TextXAlignment = Enum.TextXAlignment.Left
-		
+
 		block.Name = Airflow:RandomString()
 		block.Parent = KeybindFrame
 		block.AnchorPoint = Vector2.new(1, 0.5)
@@ -2370,7 +2537,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		block.Position = UDim2.new(1, -10, 0.5, 0)
 		block.Size = UDim2.new(0, 55, 0, 22)
 		block.ZIndex = 7
-		
+
 		UICorner_2.CornerRadius = UDim.new(0, 5)
 		UICorner_2.Parent = block
 
@@ -2390,28 +2557,28 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		VText.TextSize = 13.000
 		VText.TextWrapped = true
 		VText.TextTransparency = 1;
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,VText,0.5,nil,{
 				TextTransparency = 0,
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,block,0.5,nil,{
 				BackgroundTransparency = 0.5,
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0.3,
 			})
-			
+
 			task.delay(0.4,Airflow.CreateAnimation,Airflow,KeybindFrame,0.5,nil,{
 				BackgroundTransparency = 0.800,
 				Size = UDim2.new(1, -2, 0, 35)
 			})
 		end;
-		
+
 		Airflow:Hover(KeybindFrame);
-		
+
 		local UpdateScale = function()
 			local BindLabelScale = TextService:GetTextSize(VText.Text,VText.TextSize,VText.Font,Vector2.new(math.huge,math.huge));
 
@@ -2419,23 +2586,23 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				Size = UDim2.new(0, BindLabelScale.X + 22, 0, 22)
 			}):Play();
 		end;
-		
+
 		UpdateScale();
-		
+
 		local IsBinding = false;
 		Airflow:NewInput(block,function()
 			if IsBinding then
 				return;
 			end;
-			
+
 			VText.Text = "...";
-			
+
 			UpdateScale();
-			
+
 			local Selected = nil;
 			while not Selected do
 				local Key = UserInputService.InputBegan:Wait();
-				
+
 				if Key.KeyCode ~= Enum.KeyCode.Unknown then
 					Selected = Key.KeyCode;
 				else
@@ -2454,11 +2621,21 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			UpdateScale();
 
 			IsBinding = false;
-
+			
+			ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
+				Value = (typeof(Selected) == "string" and Selected or Selected.Name),
+			};
+			
 			config.Callback(typeof(Selected) == "string" and Selected or Selected.Name);
 		end);
 		
-		return {
+		ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
+			Value = (typeof(config.Default) == "string" and config.Default or config.Default.Name),
+		};
+		
+		ElementId += 1;
+		
+		local tableback  ={
 			Edit = function(self , Value)
 				PText.Text = Value				
 			end,
@@ -2468,6 +2645,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				VText.Text = GetItem(config.Default);
 
 				UpdateScale();
+
+				ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
+					Value = (typeof(config.Default) == "string" and config.Default or config.Default.Name),
+				};
 			end,
 
 			Visible = function(self , Value)
@@ -2477,7 +2658,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Destroy = function(self)
 				KeybindFrame:Destroy();		
 			end,
-			
+
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
@@ -2490,11 +2671,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					Airflow:CreateAnimation(block,0.6,nil,{
 						BackgroundTransparency = 0.5,
 					})
-					
+
 					Airflow:CreateAnimation(PText,0.7,nil,{
 						TextTransparency = 0.3,
 					})
-					
+
 					Airflow:CreateAnimation(VText,0.6,nil,{
 						TextTransparency = 0,
 					})
@@ -2518,14 +2699,25 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Keybind",
+			API = tableback,
+			IDCode = "Keybind_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback
 	end;
-	
+
 	function elements:AddColorPicker(config)
 		config = config or {};
 		config.Name = config.Name or "ColorPicker";
 		config.Default = config.Default or Color3.fromRGB(255,255,255);
 		config.Callback = config.Callback or function() end;
 		
+		local ID = ElementId;
 		local ColorPickerFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2562,7 +2754,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextSize = 13.000
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
-		
+
 		PText.TextXAlignment = Enum.TextXAlignment.Left
 
 		block.Name = "block"
@@ -2575,7 +2767,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		block.Size = UDim2.new(0, 45, 0, 20)
 		block.ZIndex = 7
 		block.BackgroundTransparency = 1;
-		
+
 		UICorner_2.CornerRadius = UDim.new(0, 4)
 		UICorner_2.Parent = block
 
@@ -2602,17 +2794,31 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				BackgroundTransparency = 0.800,
 			})
 		end;
-		
+
 		local Detector = function(color)
 			config.Default = color;
+			local R,G,B = color.R * 255,color.G * 255,color.B * 255;
 			
 			Airflow:CreateAnimation(block,0.7,nil,{
 				BackgroundColor3 = config.Default;
 			});
 			
+			ElementConfigs["ColorPicker_"..config.Name.."_"..tostring(ID)] = {
+				Value = {R,G,B},
+			};
+			
 			config.Callback(color);
 		end;
 		
+		
+		do
+			local R,G,B = config.Default.R * 255,config.Default.G * 255,config.Default.B * 255;
+
+			ElementConfigs["ColorPicker_"..config.Name.."_"..tostring(ID)] = {
+				Value = {R,G,B},
+			};
+		end;
+
 		TextButton.MouseButton1Click:Connect(function()
 			task.wait();
 			Airflow.Features.ColorPickerToggle = not Airflow.Features.ColorPickerToggle;
@@ -2623,14 +2829,18 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		end)
 
 		Airflow:Hover(ColorPickerFrame);
-
-		return {
+		
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value;
 			end,
-			
-			SetValue = Detector,
-			
+
+			SetValue = function(self , value)
+				return Detector(value);
+			end,
+
 			Visible = function(self , Value)
 				ColorPickerFrame.Visible = Value		
 			end,
@@ -2671,13 +2881,24 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "ColorPicker",
+			API = tableback,
+			IDCode = "ColorPicker_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback
 	end;
-	
+
 	function elements:AddParagraph(config)
 		config = config or {};
 		config.Name = config.Name or "Paragraph";
 		config.Content = config.Content or nil;
-
+		
+		local ID = ElementId;
 		local ParagraphFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2692,7 +2913,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		ParagraphFrame.ClipsDescendants = true
 		ParagraphFrame.Size = UDim2.new(1, -2, 0, 45)
 		ParagraphFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = ParagraphFrame
 
@@ -2712,7 +2933,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
 		PText.TextXAlignment = Enum.TextXAlignment.Left
-		
+
 		SText.Name = Airflow:RandomString()
 		SText.Parent = ParagraphFrame
 		SText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2730,32 +2951,32 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		SText.TextWrapped = true
 		SText.TextXAlignment = Enum.TextXAlignment.Left
 		SText.TextYAlignment = Enum.TextYAlignment.Top
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,SText,0.5,nil,{
 				TextTransparency = 0.300
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0.200
 			})
-			
+
 			task.delay(0.4,Airflow.CreateAnimation,Airflow,ParagraphFrame,0.5,nil,{
 				BackgroundTransparency = 0.800,
 			})
 		end;
-		
+
 		Airflow:Hover(ParagraphFrame);
-		
+
 		local updateScale = function()
-			
+
 			if config.Content or SText.Text:Byte() then
 				local SizeY = 27;
-				
+
 				local size = TextService:GetTextSize(SText.Text,SText.TextSize,SText.Font,Vector2.new(math.huge,math.huge));
-				
+
 				SizeY += size.Y;
-				
+
 				Airflow:CreateAnimation(ParagraphFrame,0.4,nil,{
 					Size = UDim2.new(1, -2,0, SizeY + 10)
 				});
@@ -2765,10 +2986,12 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				});
 			end;
 		end;
-		
+
 		task.delay(0.4,updateScale)
 		
-		return {
+		ElementId += 1;
+		
+		local tableback = {
 			EditName = function(self , Value)
 				PText.Text = Value;
 				updateScale();
@@ -2786,7 +3009,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Destroy = function(self)
 				ParagraphFrame:Destroy();		
 			end,
-			
+
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
@@ -2817,8 +3040,18 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Paragraph",
+			API = tableback,
+			IDCode = "Paragraph_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback;
 	end;
-	
+
 	function elements:AddDropdown(config)
 		config = config or {};
 		config.Name = config.Name or "Dropdown";
@@ -2826,12 +3059,12 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Default = config.Default or {};
 		config.Multi = config.Multi or false;
 		config.Callback = config.Callback or function() end;
-		
+
 		local parse = function(value)
 			if not value then return 'NONE' end;
-			
+
 			local Out;
-			
+
 			if typeof(value) == 'table' then
 				if #value > 0 then
 					local x = {};
@@ -2856,10 +3089,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			else
 				Out = tostring(value);
 			end;
-			
+
 			return Out;
 		end;
 		
+		local ID = ElementId;
 		local DropdownFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2881,7 +3115,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		DropdownFrame.BorderSizePixel = 0
 		DropdownFrame.Size = UDim2.new(1, -6, 0, 25)
 		DropdownFrame.ZIndex = 6
-		
+
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = DropdownFrame
 
@@ -2902,8 +3136,8 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		PText.TextTransparency = 1
 		PText.TextWrapped = true
 		PText.TextXAlignment = Enum.TextXAlignment.Left
-		
-		
+
+
 		block.Name = Airflow:RandomString()
 		block.Parent = DropdownFrame
 		block.AnchorPoint = Vector2.new(1, 0.5)
@@ -2936,7 +3170,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		VText.TextXAlignment = Enum.TextXAlignment.Left
 		VText.TextTransparency = 1
 		VText.TextTruncate = Enum.TextTruncate.SplitWord;
-		
+
 		ImageLabel.Parent = block
 		ImageLabel.AnchorPoint = Vector2.new(1, 0.5)
 		ImageLabel.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2963,7 +3197,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		DropdownInner.ZIndex = 100
 		DropdownInner.Rotation = 0;
 		DropdownInner.Active = true
-		
+
 		UICorner_3.CornerRadius = UDim.new(0, 2)
 		UICorner_3.Parent = DropdownInner
 
@@ -2994,31 +3228,31 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center;
 		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 		UIListLayout.Padding = UDim.new(0, 6)
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,ImageLabel,0.5,nil,{
 				ImageTransparency = 0
 			})
-			
+
 
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,VText,0.5,nil,{
 				TextTransparency = 0
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0.300
 			})
-			
+
 			task.delay(0.4,Airflow.CreateAnimation,Airflow,DropdownFrame,0.5,nil,{
 				BackgroundTransparency = 0.800,
 				Size = UDim2.new(1, -2, 0, 35)
 			})
 		end;
-		
+
 		UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function() 
 			ScrollingFrame.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 2)
 		end);
-		
+
 		local IsDefault = function(val)
 			if typeof(config.Default) == 'table' then
 				if table.find(config.Default,val) or config.Default[val] then
@@ -3030,17 +3264,17 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end;
 		end;
-		
+
 		local refresh = function()
 			for i,v in next,  ScrollingFrame:GetChildren() do
 				if v:IsA('TextButton') then
 					v:Destroy();
 				end;
 			end;
-			
+
 			if config.Multi then
 				local SelectedItems = {};
-				
+
 				for i,v in next , config.Values do
 					local InputButton = Instance.new("TextButton")
 
@@ -3058,7 +3292,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					InputButton.TextSize = 14.000
 					InputButton.TextTransparency = 0.5
 					InputButton.TextXAlignment = Enum.TextXAlignment.Left
-					
+
 					if IsDefault(v) then
 						InputButton.TextTransparency = 0;
 						SelectedItems[v] = true;
@@ -3066,15 +3300,20 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 					InputButton.MouseButton1Click:Connect(function()
 						SelectedItems[v] = not SelectedItems[v];
-						
+
 						if SelectedItems[v] then
 							InputButton.TextTransparency = 0;
 						else
 							InputButton.TextTransparency = 0.5;
 						end;
-						
+
 						config.Default = SelectedItems;
 						VText.Text = parse(SelectedItems)
+						
+						ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
+							Value = SelectedItems,
+						};
+						
 						config.Callback(SelectedItems)
 					end)
 				end;
@@ -3097,52 +3336,61 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					InputButton.TextSize = 14.000
 					InputButton.TextTransparency = 0.5
 					InputButton.TextXAlignment = Enum.TextXAlignment.Left
-					
-					
+
+
 					if v == config.Default then
 						InputButton.TextTransparency = 0;
 						SelectedItem = InputButton;
 					end;
-					
+
 					InputButton.MouseButton1Click:Connect(function()
 						if SelectedItem then
 							SelectedItem.TextTransparency = 0.5;
 						end;
-						
+
 						InputButton.TextTransparency = 0;
 						SelectedItem = InputButton;
-						
+
 						VText.Text = parse(v)
 						config.Default = v;
+						
+						ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
+							Value = v,
+						};
+						
 						config.Callback(v)
 					end)
 				end;
 			end;
 		end;
-		
+
 		local UpdateValueText = function()
 			local scale = TextService:GetTextSize(VText.Text,VText.TextSize,VText.Font,Vector2.new(math.huge,math.huge));
-			
+
 			Airflow:CreateAnimation(VText,0.65,nil,{
 				Position = UDim2.new(0, 23, 0.5, 0),
 				Size = UDim2.new(1, -45,0, 20)
 			})
 		end;
 		
+		ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
+			Value = config.Default,
+		};
+
 		refresh();
-		
+
 		local ToggleValue = false;
-		
+
 		local Change = function(Value)
 			ToggleValue = Value;
 			local scale = TextService:GetTextSize(VText.Text,VText.TextSize,VText.Font,Vector2.new(math.huge,math.huge));
-			
+
 			local NameScale = TextService:GetTextSize(PText.Text,PText.TextSize,PText.Font,Vector2.new(math.huge,math.huge));
 
 			local MaxSize = (200 - NameScale.X) + DropdownFrame.AbsoluteSize.X / 10;
-			
+
 			if Value then
-				
+
 				Airflow:CreateAnimation(block,0.35,nil,{
 					BackgroundTransparency = 0.5,
 					Size = UDim2.new(0, math.clamp((scale.X + 15) + 37,75,MaxSize),0, 30)
@@ -3151,45 +3399,45 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				Airflow:CreateAnimation(DropdownInner,0.5,nil,{
 					Size = UDim2.new(0,math.clamp((scale.X + 15) + 37,75,MaxSize),0,math.min(UIListLayout.AbsoluteContentSize.Y + 11,150))
 				})
-				
+
 				Airflow:CreateAnimation(ScrollingFrame,0.5,nil,{
 					Position = UDim2.new(0.5, 0, 0.5, 0)
 				})
-				
+
 				Airflow:CreateAnimation(ImageLabel,0.4,nil,{
 					Rotation = -180
 				})
-				
+
 				Airflow:CreateAnimation(VText,0.65,nil,{
 					Position = UDim2.new(0, 7, 0.5, 0),
 					Size = UDim2.new(1, -30, 0, 20)
 				})
-				
+
 				DropdownInner.Rotation = 0;
 			else
 				DropdownInner.Rotation = 0;
-				
+
 				Airflow:CreateAnimation(ScrollingFrame,0.5,nil,{
 					Position = UDim2.new(0.65, 0, 0.5, 0)
 				})
-				
+
 				Airflow:CreateAnimation(ImageLabel,0.4,nil,{
 					Rotation = 0
 				})
-				
+
 				Airflow:CreateAnimation(block,0.75,nil,{
 					BackgroundTransparency = 1,
 					Size = UDim2.new(0, math.clamp((scale.X + 15) + 37,75,MaxSize),0, 30)
 				})
-				
+
 				Airflow:CreateAnimation(DropdownInner,0.4,nil,{
 					Size = UDim2.new(0, math.clamp((scale.X + 15) + 37,75,MaxSize),0, 0)
 				})
-				
+
 				UpdateValueText();
 			end;
 		end;
-		
+
 		UserInputService.InputBegan:Connect(function(sts)
 			if sts.UserInputType == Enum.UserInputType.MouseButton1 or sts.UserInputType == Enum.UserInputType.Touch then
 				if not Airflow:IsMouseOverFrame(DropdownFrame) and not Airflow:IsMouseOverFrame(DropdownInner) then
@@ -3197,20 +3445,22 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end;
 			end
 		end)
-		
+
 		Airflow:NewInput(DropdownFrame,function()
 			refresh();
-			
+
 			ToggleValue = not ToggleValue;
 			Change(ToggleValue)
 		end);
-		
+
 		Airflow:Hover(DropdownFrame)
-		
+
 		Change(false)
 		UpdateValueText();
 		
-		return {
+		ElementId += 1;
+		
+		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value;
 			end,
@@ -3218,10 +3468,14 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			SetValues = function(self , Value)
 				config.Values = Value;
 			end,
-			
+
 			SetDefault = function(self , Value)
 				config.Default = Value;
-				VText.Text = parse(Value)
+				VText.Text = parse(Value);
+
+				ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
+					Value = Value,
+				};
 			end,
 
 			Visible = function(self , Value)
@@ -3231,7 +3485,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Destroy = function(self)
 				DropdownFrame:Destroy();		
 			end,
-			
+
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
@@ -3248,7 +3502,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					Airflow:CreateAnimation(VText,0.7,nil,{
 						TextTransparency = 0
 					})
-					
+
 					Airflow:CreateAnimation(ImageLabel,0.7,nil,{
 						ImageTransparency = 0
 					})
@@ -3272,8 +3526,44 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
+		
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "Dropdown",
+			API = tableback,
+			IDCode = "Dropdown_"..config.Name.."_"..tostring(ID),
+		};
+		
+		return tableback;
 	end;
 	
+	function elements:GetElementFromKey(key)
+		local _V = string.split(key,'_');
+		
+		local ID = _V[#_V];
+		
+		return ElementIDs[ID] or ElementIDs[tostring(ID)] or (function()
+			for i,v in next , ElementIDs do
+				if v.IDCode == key then
+					return v;
+				end;
+			end;
+		end)();
+	end;
+	
+	function elements:GetConfigs()
+		return ElementConfigs;
+	end;
+	
+	function elements:GetElementFromId(id)
+		return ElementIDs[id];
+	end;
+	
+	function elements:GetInfo()
+		return ElementIDs;
+	end;
+
 	return elements;
 end;
 
@@ -3287,6 +3577,7 @@ function Airflow:Init(config)
 	config.Resizable = config.Resizable or Airflow.Config.Resizable;
 	config.UnlockMouse = config.UnlockMouse or Airflow.Config.UnlockMouse;
 	config.IconSize = config.IconSize or Airflow.Config.IconSize;
+	config.Version = config.Version or "1.0";
 	
 	local Response = {
 		TabElements = {};
@@ -3295,6 +3586,7 @@ function Airflow:Init(config)
 		Hightlight = config.Hightlight,
 		FirstToggle = true;
 		UnlockMouse = config.UnlockMouse;
+		TabConfig = {};
 	};
 
 	local AirflowWindow = Instance.new("ScreenGui")
@@ -3315,7 +3607,7 @@ function Airflow:Init(config)
 	local UICorner_2 = Instance.new("UICorner")
 	local windowName = Instance.new("TextLabel")
 	local static = Instance.new("ImageLabel")
-	
+
 	WindowFrame:GetPropertyChangedSignal('BackgroundTransparency'):Connect(function()
 		if WindowFrame.BackgroundTransparency < 0.9 then
 			WindowFrame.Visible = true
@@ -3323,7 +3615,7 @@ function Airflow:Init(config)
 			WindowFrame.Visible = false
 		end;
 	end)
-	
+
 	local ToggleWindow = function(value)
 		if value then
 			if config.Resizable then
@@ -3331,44 +3623,44 @@ function Airflow:Init(config)
 					Position = UDim2.new(0,WindowFrame.Position.X.Offset - 25,0,WindowFrame.Position.Y.Offset - 25)
 				})
 			end;
-			
+
 			Airflow:CreateAnimation(WindowFrame,0.5,nil,{
 				Size = config.Scale;
 				BackgroundTransparency = 0.600;
 			})
-			
+
 			Airflow:CreateAnimation(MainFrame,0.45,nil,{
 				BackgroundTransparency = 0.3;
 			})
-			
+
 			Airflow:CreateAnimation(LineH,0.45,nil,{
 				BackgroundTransparency = 0.5;
 			})
-			
+
 			Airflow:CreateAnimation(LineV,0.45,nil,{
 				BackgroundTransparency = 0.5;
 			})
-		
+
 			Airflow:CreateAnimation(UIStroke,0.45,nil,{
 				Transparency = 0.570;
 			})
-			
+
 			Airflow:CreateAnimation(Icon,0.7,nil,{
 				ImageTransparency = 0;
 			})
-			
+
 			Airflow:CreateAnimation(static,0.45,nil,{
 				ImageTransparency = 0.95;
 			})
-			
+
 			Airflow:CreateAnimation(TabInputs,0.45,nil,{
 				Position = UDim2.new(0,0,0,0)
 			})
-			
+
 			Airflow:CreateAnimation(windowName,0.7,nil,{
 				TextTransparency = 0.4;
 			})
-			
+
 			if Response.OpenedTab then
 				Response.OpenedTab(true)
 			end;
@@ -3376,13 +3668,13 @@ function Airflow:Init(config)
 			for i,ChaValue in next,Response.TabElements do
 				ChaValue(false);
 			end;
-			
+
 			if config.Resizable then
 				Airflow:CreateAnimation(WindowFrame,0.5,nil,{
 					Position = UDim2.new(0,WindowFrame.Position.X.Offset + 25,0,WindowFrame.Position.Y.Offset + 25)
 				})
 			end;
-			
+
 			Airflow:CreateAnimation(WindowFrame,0.5,nil,{
 				Size = UDim2.new(config.Scale.X.Scale,config.Scale.X.Offset - 50,config.Scale.Y.Scale,config.Scale.Y.Offset - 50);
 				BackgroundTransparency = 1;
@@ -3411,7 +3703,7 @@ function Airflow:Init(config)
 			Airflow:CreateAnimation(static,0.45,nil,{
 				ImageTransparency = 1;
 			})
-			
+
 			Airflow:CreateAnimation(windowName,0.45,nil,{
 				TextTransparency = 1;
 			})
@@ -3419,7 +3711,7 @@ function Airflow:Init(config)
 			Airflow:CreateAnimation(TabInputs,0.45,nil,{
 				Position = UDim2.fromOffset(-155,0)
 			})
-			
+
 			if Response.FirstToggle then
 				Response.FirstToggle = false;
 				Airflow:Notify({
@@ -3429,22 +3721,22 @@ function Airflow:Init(config)
 			end
 		end;
 	end;
-	
+
 	task.delay(0.5,function()
 		if Airflow.Features.ColorPickerRoot then
 			Airflow.Features.ColorPickerRoot.Parent = AirflowWindow;
 		end;
 	end)
-	
+
 	AirflowWindow.Name = ".Airflow="..Airflow:RandomString()
 	AirflowWindow.Parent = CoreGui;
 	AirflowWindow.ResetOnSpawn = false
 	AirflowWindow.IgnoreGuiInset = true;
 	AirflowWindow.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-	
+
 	protect_gui(AirflowWindow);
 	Airflow:Blur(WindowFrame);
-	
+
 	WindowFrame.Active = true;
 	WindowFrame.Name = Airflow:RandomString()
 	WindowFrame.Parent = AirflowWindow
@@ -3510,11 +3802,11 @@ function Airflow:Init(config)
 	UIListLayout.Parent = ListInputs
 	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	UIListLayout.Padding = UDim.new(0, 5)
-	
+
 	UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		ListInputs.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 5)
 	end)
-	
+
 	LineH.Name = Airflow:RandomString()
 	LineH.Parent = MainFrame
 	LineH.BackgroundColor3 = Color3.fromRGB(63, 63, 63)
@@ -3570,7 +3862,7 @@ function Airflow:Init(config)
 	Icon.ZIndex = 5
 	Icon.Image = config.Logo;
 	Icon.ImageTransparency = 1
-	
+
 	UICorner_2.CornerRadius = UDim.new(1, 0)
 	UICorner_2.Parent = Icon
 
@@ -3598,13 +3890,33 @@ function Airflow:Init(config)
 	static.Image = "rbxassetid://9579075682"
 	static.ImageTransparency = 1
 	static.ScaleType = Enum.ScaleType.Crop
-	
+
 	function Response:Update()
 		local WindowNameSize = TextService:GetTextSize(windowName.Text,windowName.TextSize,windowName.Font,Vector2.new(math.huge,math.huge));
-		
+
 		windowName.Size = UDim2.new(0, WindowNameSize.X + 4, 0, 20)
 	end;
 	
+	function Response:GetTabFromKey(key)
+		for i,v in next , Response.TabConfig do
+			if (v.Name.."_"..tostring(v.ID)) == key then
+				return v;
+			end;
+		end;
+	end;
+	
+	function Response:GetConfigs()
+		local process = {};
+		
+		for i,v in next , Response.TabConfig do
+			process[v.Name.."_"..tostring(v.ID)] = v:GetConfigs();
+		end;
+		
+		process.VERSION = config.Version;
+		
+		return process;
+	end;
+
 	function Response:DrawTab(config) : Tab
 		config = config or {};
 		config.Name = config.Name or "Tab";
@@ -3672,7 +3984,7 @@ function Airflow:Init(config)
 		hightlight.Position = UDim2.new(1, 0, 0.5, 0)
 		hightlight.Size = UDim2.new(0, 2, 1, 0)
 		hightlight.ZIndex = 8
-		
+
 		-- Main Frame --
 		local ListElemants = Instance.new("Frame")
 		local ListLeft = Instance.new("ScrollingFrame")
@@ -3712,7 +4024,7 @@ function Airflow:Init(config)
 		UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 			ListLeft.CanvasSize = UDim2.fromOffset(0,UIListLayout.AbsoluteContentSize.Y + 5)
 		end)
-		
+
 		ListRight.Name = Airflow:RandomString()
 		ListRight.Parent = ListElemants
 		ListRight.Active = true
@@ -3734,7 +4046,7 @@ function Airflow:Init(config)
 		UIListLayout_2:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 			ListRight.CanvasSize = UDim2.fromOffset(0,UIListLayout_2.AbsoluteContentSize.Y + 5)
 		end)
-		
+
 		ListElemants:GetPropertyChangedSignal('Position'):Connect(function()
 			if ListElemants.Position.Y.Scale >= 0.6 then
 				ListElemants.Visible = false;
@@ -3742,7 +4054,7 @@ function Airflow:Init(config)
 				ListElemants.Visible = true;
 			end;
 		end)
-		
+
 		local DisabledText = Instance.new("TextLabel")
 
 		DisabledText.Parent = ListElemants
@@ -3760,17 +4072,24 @@ function Airflow:Init(config)
 		DisabledText.TextSize = 15.000
 		DisabledText.TextTransparency = 1
 		DisabledText.TextWrapped = true
-		
-		-- Interface --
-		
-		local Bindable = Instance.new('BindableEvent',InputElement);
 
+		-- Interface --
+
+		local Bindable = Instance.new('BindableEvent',InputElement);
+		
+		local LeftElements = Airflow:Elements(ListLeft,Bindable,Response,"Section_"..config.Name.."_"..config.Name.."_"..tostring(#Response.TabElements).."_LEFT");
+		local RightElements = Airflow:Elements(ListLeft,Bindable,Response,"Section_"..config.Name.."_"..config.Name.."_"..tostring(#Response.TabElements).."_RIGHT");
 		local TabTable = {
-			Left = Airflow:Elements(ListLeft,Bindable,Response),
-			Right = Airflow:Elements(ListRight,Bindable,Response),
+			Left = LeftElements,
+			Right = RightElements,
 			Disabled = false,
+			Name = config.Name,
+			Sections = {},
+			ID = #Response.TabElements,
 		};
 		
+		local ElementId = 1;
+
 		local ChangeValue = function(value)
 			if TabTable.Disabled then
 				ListLeft.Visible = false;
@@ -3779,34 +4098,34 @@ function Airflow:Init(config)
 				ListLeft.Visible = true;
 				ListRight.Visible = true;
 			end;
-			
+
 			if value then
-				
+
 				Airflow:CreateAnimation(hightlight,0.4,nil,{
 					BackgroundTransparency = 0
 				});
-				
+
 				Airflow:CreateAnimation(InputElement,0.4,nil,{
 					BackgroundTransparency = 0.8
 				});
-				
+
 				Airflow:CreateAnimation(PText,0.4,nil,{
 					TextTransparency = 0
 				});
-				
+
 				Airflow:CreateAnimation(Icon,0.4,nil,{
 					ImageTransparency = 0
 				});
-				
+
 				Airflow:CreateAnimation(ListElemants,0.35,nil,{
 					Position = UDim2.new(0.5, 0, 0.5, 0)
 				})
-				
+
 				if Bindable:GetAttribute('Value') ~= value and not TabTable.Disabled then
 					Bindable:Fire(true);
 					Bindable:SetAttribute('Value',value);
 				end;
-				
+
 				if TabTable.Disabled then
 					Airflow:CreateAnimation(DisabledText,0.5,nil,{
 						TextTransparency = 0.75
@@ -3817,25 +4136,25 @@ function Airflow:Init(config)
 					Bindable:Fire(false);
 					Bindable:SetAttribute('Value',value)
 				end;
-				
+
 				if TabTable.Disabled then
 					Airflow:CreateAnimation(DisabledText,0.35,nil,{
 						TextTransparency = 1
 					})
 				end;
-				
+
 				Airflow:CreateAnimation(ListElemants,0.35,nil,{
 					Position = UDim2.new(0.5, 0, 0.65, 0)
 				})
-				
+
 				Airflow:CreateAnimation(InputElement,0.4,nil,{
 					BackgroundTransparency = 1
 				});
-				
+
 				Airflow:CreateAnimation(hightlight,0.4,nil,{
 					BackgroundTransparency = 1
 				});
-				
+
 				Airflow:CreateAnimation(PText,0.4,nil,{
 					TextTransparency = 0.3
 				});
@@ -3845,7 +4164,7 @@ function Airflow:Init(config)
 				});
 			end;
 		end;
-		
+
 		if not Response.TabElements[1] then
 			Response.OpenedTab = ChangeValue;
 			ChangeValue(true);
@@ -3854,7 +4173,7 @@ function Airflow:Init(config)
 			ListElemants.Visible = false;
 			task.delay(0.5,Bindable.Fire,Bindable,false)
 		end;
-		
+
 		InputElement.MouseEnter:Connect(function()
 			if Response.OpenedTab ~= ChangeValue then
 				Airflow:CreateAnimation(InputElement,0.4,nil,{
@@ -3878,9 +4197,9 @@ function Airflow:Init(config)
 				});
 			end;
 		end);
-		
+
 		table.insert(Response.TabElements,ChangeValue);
-		
+
 		local Button = Airflow:NewInput(InputElement,function()
 			for i,ChaValue in next,Response.TabElements do
 				if ChaValue == ChangeValue then
@@ -3891,19 +4210,19 @@ function Airflow:Init(config)
 				end;
 			end;
 		end);
-		
+
 		Button.Modal = Response.UnlockMouse;
-		
+
 		function TabTable:Disable(value,reason)
 			TabTable.Disabled = value;
 			DisabledText.Text = tostring(reason or "");
 		end;
-		
+
 		function TabTable:AddSection(config)
 			config = config or {};
 			config.Name = config.Name or "Section";
 			config.Position = config.Position or "left";
-			
+
 			local Section = Instance.new("Frame")
 			local LabelFrame = Instance.new("TextLabel")
 			local UIListLayout = Instance.new("UIListLayout")
@@ -3938,7 +4257,7 @@ function Airflow:Init(config)
 			UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 			UIListLayout.Padding = UDim.new(0, 5)
-			
+
 			Bindable.Event:Connect(function(value)
 				if value then
 					task.wait(0.1);
@@ -3952,13 +4271,13 @@ function Airflow:Init(config)
 					})
 				end
 			end)
-			
+
 			UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 				Airflow:CreateAnimation(Section,0.4,Enum.EasingStyle.Quint,{
 					Size = UDim2.new(1, 0, 0, UIListLayout.AbsoluteContentSize.Y + 4)
 				});
 			end);
-			
+
 			Section:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 				if Section.Size.Y.Offset >= UIListLayout.AbsoluteContentSize.Y then
 					Section.ClipsDescendants = false;
@@ -3967,12 +4286,57 @@ function Airflow:Init(config)
 				end;
 			end);
 			
-			return Airflow:Elements(Section,Bindable,Response);
+			local ID = "Section_"..config.Name.."_"..TabTable.Name.."_"..tostring(#Response.TabElements).."_"..tostring(ElementId);
+			local SectionElements = Airflow:Elements(Section,Bindable,Response,ID);
+			
+			ElementId += 1;
+			
+			table.insert(TabTable.Sections,{
+				Elements = SectionElements,
+				ID = ID,
+			})
+			
+			return SectionElements;
 		end;
 		
+		function TabTable:GetSectionFromKey(idx)
+			local codeX = string.split(idx,"_");
+			local ID = codeX[#codeX];
+			
+			for i,v in next , TabTable.Sections do
+				if v.ID == ID or tostring(v.ID) == tostring(ID) or v.ID == idx then
+					return v.Elements;
+				end;
+			end;
+		end;
+		
+		function TabTable:GetSectionFromId(idx)
+			for i,v in next , TabTable.Sections do
+				if v.ID == idx or tostring(v.ID) == tostring(idx) then
+					return v.Elements;
+				end;
+			end;
+		end;
+		
+		function TabTable:GetConfigs()
+			local sections = {};
+			
+			for i,v in next , TabTable.Sections do
+				sections[v.ID] = v.Elements:GetConfigs();
+			end;
+			
+			return {
+				Left = LeftElements:GetConfigs(),
+				Right = RightElements:GetConfigs(),
+				Sections = sections,
+			};
+		end;
+		
+		table.insert(Response.TabConfig,TabTable);
+
 		return TabTable;
 	end;
-	
+
 	local dragToggle = nil;
 	local dragSpeed = 0.25;
 	local dragStart = nil;
@@ -3980,10 +4344,10 @@ function Airflow:Init(config)
 
 	local function updateInput(input)
 		local delta = input.Position - dragStart;
-		
+
 		local position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y);
-		
+
 		Airflow:CreateAnimation(WindowFrame,dragSpeed,nil,{
 			Position = position
 		});
@@ -4009,19 +4373,19 @@ function Airflow:Init(config)
 			end
 		end
 	end);
-	
+
 	UserInputService.InputBegan:Connect(function(input)
 		if input.KeyCode.Name == config.Keybind or input.KeyCode == config.Keybind then
 			Response.Toggle = not Response.Toggle;
-			
+
 			ToggleWindow(Response.Toggle);
 		end;
 	end);
-	
+
 	function Response:SetKeybind(new)
 		config.Keybind = new;
 	end;
-	
+
 	function Response:GetButton()
 		local backpack = Instance.new("ImageButton")
 		local UICorner = Instance.new("UICorner")
@@ -4142,29 +4506,29 @@ function Airflow:Init(config)
 		_5.BackgroundTransparency = 1.000
 		_5.Size = UDim2.new(1, 0, 1, 0)
 		_5.ZIndex = 2
-		
+
 		backpack.MouseButton1Click:Connect(function()
 			Response.Toggle = not Response.Toggle;
 
 			ToggleWindow(Response.Toggle)
 		end);
-		
+
 		backpack.MouseEnter:Connect(function()
 			Airflow:CreateAnimation(backpack,0.3,nil,{
 				BackgroundColor3 = config.Hightlight,
 				BackgroundTransparency = 0.85
 			})
 		end)
-		
+
 		backpack.MouseLeave:Connect(function()
 			Airflow:CreateAnimation(backpack,0.3,nil,{
 				BackgroundTransparency = 1
 			})
 		end)
-		
+
 		return backpack;
 	end;
-	
+
 	local CreateResizable = function()
 		Airflow:CreateAnimation(WindowFrame,0.5,nil,{
 			AnchorPoint = Vector2.zero;
@@ -4238,10 +4602,10 @@ function Airflow:Init(config)
 			end;
 		end;
 	end;
-	
+
 	if config.Resizable then
 		CreateResizable();
-		
+
 	else
 		function Response:SetResizable(value)
 			if value then
@@ -4250,20 +4614,20 @@ function Airflow:Init(config)
 			end;
 		end;
 	end;
-	
+
 	if Airflow:IsMobile() then
 		Airflow:Notify({
 			Title = "Mobile",
 			Content = "Open roblox options to open/close menu"
 		});
 	end;
-	
+
 	-- Toggle Button --
 	task.spawn(function()
 		local IsExploit = pcall(function() 
 			return game:GetService('CoreGui'):FindFirstChild('TopBarApp');
 		end);
-		
+
 		local TopBar;
 		if not IsExploit then
 			TopBar = game:GetService('ReplicatedStorage'):FindFirstChild('Icon') or (game:GetService('ReplicatedStorage'):FindFirstChild('Elements',true) and game:GetService('ReplicatedStorage'):FindFirstChild('Elements',true).Parent);
@@ -4276,11 +4640,11 @@ function Airflow:Init(config)
 
 						ToggleWindow(Response.Toggle)
 					end)
-					
+
 				return;
 			end;
 		end;
-		
+
 		while true do task.wait(0.1)
 			if IsExploit then
 				local SubMenuHost = game:GetService('CoreGui'):FindFirstChild('TopBarApp'):FindFirstChild('TopBarApp'):FindFirstChild('UnibarLeftFrame'):FindFirstChild('UnibarMenu'):WaitForChild('SubMenuHost');
@@ -4307,11 +4671,11 @@ function Airflow:Init(config)
 			end;
 		end;
 	end)
-	
+
 	ToggleWindow(true);
-	
+
 	Response:Update();
-	
+
 	return Response;
 end;
 
@@ -4319,11 +4683,11 @@ function Airflow:DrawList(config)
 	config = config or {};
 	config.Icon = config.Icon or "keyboard";
 	config.Name = config.Name or "keybinds";
-	
+
 	local Response = {
 		Toggle = true;
 	};
-	
+
 	local AirflowUI = Instance.new("ScreenGui")
 	local ListFrame = Instance.new("Frame")
 	local UICorner = Instance.new("UICorner")
@@ -4337,41 +4701,41 @@ function Airflow:DrawList(config)
 	local UICorner_2 = Instance.new("UICorner")
 	local WindowName = Instance.new("TextLabel")
 	local static = Instance.new("ImageLabel")
-	
+
 	local ToggleFun = function(value)
 		if value then
 			Airflow:CreateAnimation(ListFrame,0.3,nil,{
 				BackgroundTransparency = 0.600
 			});
-			
+
 			Airflow:CreateAnimation(MainFrame,0.3,nil,{
 				BackgroundTransparency = 0.3
 			});
-			
+
 			Airflow:CreateAnimation(LineV,0.3,nil,{
 				BackgroundTransparency = 0.500
 			});
-			
+
 			Airflow:CreateAnimation(LineV,0.3,nil,{
 				BackgroundTransparency = 0.500
 			});
-			
+
 			Airflow:CreateAnimation(UIStroke,0.3,nil,{
 				Transparency = 0.570
 			});
-			
+
 			Airflow:CreateAnimation(Icon,0.3,nil,{
 				ImageTransparency = 0
 			});
-			
+
 			Airflow:CreateAnimation(WindowName,0.3,nil,{
 				TextTransparency = 0.4
 			});
-			
+
 			Airflow:CreateAnimation(static,0.3,nil,{
 				ImageTransparency = 0.9
 			});
-			
+
 			Airflow:CreateAnimation(ListFrame,0.3,nil,{
 				Size = UDim2.new(0, 200, 0, UIListLayout.AbsoluteContentSize.Y + 40)
 			});
@@ -4379,7 +4743,7 @@ function Airflow:DrawList(config)
 			Airflow:CreateAnimation(ListFrame,0.3,nil,{
 				Size = UDim2.new(0, 200, 0, 0)
 			});
-			
+
 			Airflow:CreateAnimation(ListFrame,0.3,nil,{
 				BackgroundTransparency = 1
 			});
@@ -4413,16 +4777,16 @@ function Airflow:DrawList(config)
 			});
 		end;
 	end;
-	
+
 	AirflowUI.Name = "AirflowUI"
 	AirflowUI.Parent = CoreGui
 	AirflowUI.ResetOnSpawn = false
 	AirflowUI.IgnoreGuiInset = true
 	AirflowUI.ZIndexBehavior = Enum.ZIndexBehavior.Global;
-	
+
 	protect_gui(AirflowUI);
 	Airflow:Blur(ListFrame);
-	
+
 	ListFrame.Active = true
 	ListFrame.Name = "ListFrame"
 	ListFrame.Parent = AirflowUI
@@ -4434,7 +4798,7 @@ function Airflow:DrawList(config)
 	ListFrame.Position = UDim2.new(0, 100, 0, 100)
 	ListFrame.Size = UDim2.new(0, 200, 0, 71)
 	ListFrame.ZIndex = 120
-	
+
 	ListFrame:GetPropertyChangedSignal('Size'):Connect(function()
 		if ListFrame.BackgroundTransparency >= 0.95 then
 			AirflowUI.Enabled = false;
@@ -4442,7 +4806,7 @@ function Airflow:DrawList(config)
 			AirflowUI.Enabled = true;
 		end;
 	end)
-	
+
 	UICorner.CornerRadius = UDim.new(0, 2)
 	UICorner.Parent = ListFrame
 
@@ -4471,7 +4835,7 @@ function Airflow:DrawList(config)
 	UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
 	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	UIListLayout.Padding = UDim.new(0, 5)
-	
+
 	UIListLayout:GetPropertyChangedSignal('AbsoluteContentSize'):Connect(function()
 		if Response.Toggle then
 			Airflow:CreateAnimation(ListFrame,0.3,nil,{
@@ -4479,7 +4843,7 @@ function Airflow:DrawList(config)
 			});
 		end;
 	end)
-	
+
 	UIStroke.Transparency = 1
 	UIStroke.Color = Color3.fromRGB(125, 125, 125)
 	UIStroke.Parent = ListFrame
@@ -4512,7 +4876,7 @@ function Airflow:DrawList(config)
 	Icon.ZIndex = 122
 	Icon.Image = Airflow:GetIcon(config.Icon);
 	Icon.ImageTransparency = 1
-	
+
 	UICorner_2.CornerRadius = UDim.new(1, 0)
 	UICorner_2.Parent = Icon
 
@@ -4542,7 +4906,7 @@ function Airflow:DrawList(config)
 	static.ImageTransparency = 0.9
 	static.ScaleType = Enum.ScaleType.Crop
 	static.ImageTransparency = 1
-	
+
 	function Response:AddFrame(config) : KeyValue
 		config = config or {};
 		config.Key = config.Key or "key";
@@ -4592,26 +4956,26 @@ function Airflow:DrawList(config)
 		value.TextSize = 13.000
 		value.TextTransparency = 0.500
 		value.TextXAlignment = Enum.TextXAlignment.Right
-		
+
 		return {
 			SetKey = function(self , value)
 				config.Key = value;
 				name.Text = config.Key
 			end,
-			
+
 			SetValue = function(self , value)
 				config.Value = value;
 				value.Text = config.Value
 			end,
-			
+
 			Visible = function(self , value)
 				Frame.Visible = value;
 			end,
 		}
 	end;
-	
+
 	ToggleFun(true);
-	
+
 	function Response:Visible(value)
 		if value then
 			Response.Toggle = true
@@ -4621,7 +4985,7 @@ function Airflow:DrawList(config)
 			ToggleFun(false);
 		end;
 	end;
-	
+
 	local dragToggle = nil;
 	local dragSpeed = 0.25;
 	local dragStart = nil;
@@ -4657,7 +5021,7 @@ function Airflow:DrawList(config)
 			end
 		end
 	end);
-	
+
 	return Response;
 end;
 
@@ -4679,7 +5043,7 @@ do
 	UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Right
 	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	UIListLayout.Padding = UDim.new(0, 0)
-	
+
 	function Airflow:Notify(config)
 		config = config or {};
 		config.Title = config.Title or "Notification";
@@ -4746,11 +5110,11 @@ do
 		Title.TextSize = 14.000
 		Title.TextXAlignment = Enum.TextXAlignment.Left
 		Title.TextTransparency = 1;
-		
+
 		task.delay(0.275,Airflow.CreateAnimation,Airflow,Title,0.4,nil,{
 			TextTransparency = 0
 		})
-		
+
 		Content.Name = Airflow:RandomString()
 		Content.Parent = MainFrame
 		Content.AnchorPoint = Vector2.new(0.5, 0)
@@ -4771,29 +5135,29 @@ do
 		task.delay(0.325,Airflow.CreateAnimation,Airflow,Content,0.5,nil,{
 			TextTransparency = 0.3
 		})
-		
+
 		local UpdateScale = function()
 			local TitleScale = TextService:GetTextSize(Title.Text,Title.TextSize,Title.Font,Vector2.new(math.huge,math.huge));
-			
+
 			if not Content.Text:byte() then
 				Frame.Size = UDim2.fromOffset(TitleScale.X + 5 , 45);
 				MainFrame.Size = UDim2.fromOffset(TitleScale.X + 5 , 40);
 			else
 				local ContentScale = TextService:GetTextSize(Content.Text,Content.TextSize,Content.Font,Vector2.new(math.huge,math.huge));
-				
+
 				local Long = ((ContentScale.X > TitleScale.X) and ContentScale.X) or TitleScale.X;
-				
+
 				Frame.Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 30);
 				MainFrame.Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 25);
 			end;
 		end;
-		
+
 		UpdateScale();
-		
+
 		Airflow:CreateAnimation(MainFrame,0.4,nil,{
 			Position = UDim2.fromScale(0,0)
 		})
-		
+
 		task.delay(config.Duration,function()
 			Airflow:CreateAnimation(MainFrame,0.4,nil,{
 				Position = UDim2.new(1.5,100,0,0)
