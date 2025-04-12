@@ -1158,6 +1158,7 @@ do
 	ColorPicker.SizeConstraint = Enum.SizeConstraint.RelativeYY
 	ColorPicker.ZIndex = 105;
 	ColorPicker.Visible = false;
+	ColorPicker.Active = true;
 	
 	ColorPicker:GetPropertyChangedSignal('BackgroundTransparency'):Connect(function()
 		if ColorPicker.BackgroundTransparency <= 0.9 then
