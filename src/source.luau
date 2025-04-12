@@ -1360,17 +1360,21 @@ do
 	local IsPressM1 = false;
 
 	do
-		UserInputService.InputBegan:Connect(function(Input)
+		ColorPicker.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 				IsPressM1 = true;
+			end;
+		end)
 
+		UserInputService.InputBegan:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 				if not Airflow:IsMouseOverFrame(ColorPicker) then
 					Airflow.Features:OnColorPicker(false)
 				end;
 			end;
 		end)
 
-		UserInputService.InputEnded:Connect(function(Input)
+		ColorPicker.InputEnded:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 				IsPressM1 = false;
 			end;
@@ -2307,7 +2311,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				if typeof(item) == 'EnumItem' then
 					return Keys[item.Name] or item.Name;
 				else
-					return Keys[tostring(item)] or string.upper(tostring(item))
+					return Keys[tostring(item)] or tostring(item);
 				end;
 			else
 				return 'NONE';
