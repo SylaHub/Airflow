@@ -1366,6 +1366,12 @@ do
 			end;
 		end)
 
+		ColorPicker.InputEnded:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				IsPressM1 = false;
+			end;
+		end)
+
 		UserInputService.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
 				if not Airflow:IsMouseOverFrame(ColorPicker) then
@@ -1374,15 +1380,11 @@ do
 			end;
 		end)
 
-		ColorPicker.InputEnded:Connect(function(Input)
-			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				IsPressM1 = false;
-			end;
-		end)
-
 		ColorSelect.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1 do task.wait()
+                IsPressM1 = true;
+
+                while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait()
 					local ColorY = ColorSelect.AbsolutePosition.Y
 					local ColorYM = ColorY + ColorSelect.AbsoluteSize.Y;
 					local Value = math.clamp(Mouse.Y, ColorY, ColorYM)
@@ -1443,7 +1445,9 @@ do
 
 		ColorPick.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1 do task.wait();
+			    IsPressM1 = true;
+
+                while (UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1) do task.wait();
 					local PosX = ColorPick.AbsolutePosition.X
 					local ScaleX = PosX + ColorPick.AbsoluteSize.X
 					local Value, PosY = math.clamp(Mouse.X, PosX, ScaleX), ColorPick.AbsolutePosition.Y
