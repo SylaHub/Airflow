@@ -121,7 +121,7 @@ end;
 
 -- Airflow --
 local Airflow = {
-	Version = "1.0",
+	Version = "1.1",
 	ScreenGui = AirflowUI,
 	Config = {
 		Scale = UDim2.new(0.1, 515, 0.1, (UserInputService.TouchEnabled and 345) or 395),
@@ -958,7 +958,7 @@ local Airflow = {
 
 -- File Manager --
 do
-	
+
 	local SetBlock = function(element , type , value)
 		if type == "Keybind" then
 			element:SetValue(value);
@@ -972,7 +972,7 @@ do
 			element:SetValue(Color3.fromRGB(value[1],value[2],value[3]));
 		end;
 	end;
-	
+
 	local ParserObject = function(model, cfg)
 		for i,v in next , cfg do
 			local element = model:GetElementFromKey(i);
@@ -985,30 +985,30 @@ do
 			end;
 		end;
 	end;
-	
+
 	local Parser = function(config , window,VERSION : string)
 		local WinCFG = window:GetConfigs();
-		
+
 		if WinCFG.VERSION ~= VERSION then
 			warn("VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]");
 			return "VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]";
 		end;
-		
+
 		for Tab,Value in next , config do
 			local WindowTab : Tab = window:GetTabFromKey(tostring(Tab));
-			
+
 			if WindowTab then
-				
+
 				local Left = Value.Left;
 				local Right = Value.Right;
 				local Sections = Value.Sections;
-				
+
 				ParserObject(WindowTab.Left,Left);
 				ParserObject(WindowTab.Right,Right);
-				
+
 				for i,v in next , Sections do
 					local Section = WindowTab:GetSectionFromKey(i);
-					
+
 					if Section then
 						ParserObject(Section,v);
 					else
@@ -1020,26 +1020,29 @@ do
 			end;
 		end;
 	end;
-	
+
 	function Airflow.FileManager:WriteConfig(Window,path : string)
-		local config = Window:GetConfig();
+		local config = Window:GetConfigs();
+		local mem = game:GetService('HttpService'):JSONEncode(config);
 		
 		if writefile then
-			writefile(path,game:GetService('HttpService'):JSONEncode(config));
+			writefile(path,mem);
 		end;
+		
+		return mem;
 	end;
-	
+
 	function Airflow.FileManager:LoadConfig(Window,path : string,VERSION : string)
 		local content = readfile(path);
 		local Code = game:GetService('HttpService'):JSONDecode(content);
 		
-		return Parser(Code,Window,VERSION);
+		return Parser(Code,Window,VERSION or "1.0");
 	end;
-	
+
 	function Airflow.FileManager:LoadConfigFromString(Window,str : string,VERSION : string)
 		local Code = game:GetService('HttpService'):JSONDecode(str);
-		
-		return Parser(Code,Window,VERSION);
+
+		return Parser(Code,Window,VERSION or "1.0");
 	end;
 end;
 
@@ -1713,11 +1716,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 	local ElementConfigs = {};
 	local ElementId = 1;
 	local ElementIDs = {};
-	
+
 	function elements:AddLabel(name)
 		local LabelFrame = Instance.new("TextLabel")
 		local ID = ElementId;
-		
+
 		LabelFrame.Name = Airflow:RandomString()
 		LabelFrame.Parent = element
 		LabelFrame.AnchorPoint = Vector2.new(0, 0.5)
@@ -1763,9 +1766,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				LabelFrame.Visible = true;
 			end;
 		end);
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				LabelFrame.Text = Value				
@@ -1779,14 +1782,14 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			ID = ID,
 			Signal = OnChange.Event:Connect(VisibleAnimation)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = name,
 			ID = ID,
 			Type = "Label",
 			API = tableback,
 		};
-		
+
 		return tableback;
 	end;
 
@@ -1794,7 +1797,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config = config or {};
 		config.Name = config.Name or "Button";
 		config.Callback = config.Callback or function() end;
-		
+
 		local ID = ElementId;
 		local ButtonFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -1867,9 +1870,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				})
 			end
 		end;
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
@@ -1883,14 +1886,14 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			end,
 			Signal = OnChange.Event:Connect(VisibleAnimation)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
 			Type = "Button",
 			API = tableback,
 		};
-		
+
 		return tableback
 	end;
 
@@ -1899,7 +1902,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Name = config.Name or "Toggle";
 		config.Callback = config.Callback or function() end;
 		config.Default = config.Default or false;
-		
+
 		local ID = ElementId;
 		local ToggleFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -2000,29 +2003,29 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		end;
 
 		Change(config.Default);
-		
+
 		ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
 			Value = config.Default;
 		};
-		
+
 		local BindableToggle = Instance.new("BindableEvent",ToggleFrame);
 		Airflow:NewInput(ToggleFrame,function()
 			config.Default = not config.Default;
 
 			BindableToggle:Fire(config.Default);
-			
+
 			ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
 				Value = config.Default;
 			};
-			
+
 			Change(config.Default)
 			config.Callback(config.Default)
 		end);
 
 		Airflow:Hover(ToggleFrame);
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
@@ -2035,6 +2038,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
 					Value = config.Default;
 				};
+				
+				BindableToggle:Fire(config.Default);
+				
+				config.Callback(config.Default)
 			end,
 
 			Visible = function(self , Value)
@@ -2111,7 +2118,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -2119,7 +2126,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "Toggle_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback
 	end;
 
@@ -2132,7 +2139,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Round = config.Round or 0;
 		config.Default = config.Default or config.Min;
 		config.Type = config.Type or "";
-		
+
 		local ID = ElementId;
 		local SliderFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -2274,11 +2281,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		end
 
 		Airflow:Hover(SliderFrame)
-		
+
 		ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 			Value = config.Default,
 		};
-		
+
 		local IsHold = false;
 
 		local function update(Input)
@@ -2294,12 +2301,12 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			config.Default = Value;
 			VText.Text = tostring(Value)..tostring(config.Type)
-			
+
 			ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 				Value = config.Default,
 			};
-			
-			config.Callback(Value,config)
+
+			config.Callback(Value)
 		end;
 
 		wheel.InputBegan:Connect(function(Input)
@@ -2336,9 +2343,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end;
 			end;
 		end);
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value				
@@ -2347,10 +2354,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			SetValue = function(self , Value)
 				config.Default = Value;
 				slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0);
-
+				VText.Text = tostring(Value)..tostring(config.Type)
+				
 				ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 					Value = config.Default,
 				};
+				
+				config.Callback(Value)
 			end,
 
 			Visible = function(self , Value)
@@ -2427,7 +2437,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -2435,7 +2445,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "Slider_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback
 	end;
 
@@ -2475,7 +2485,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Equals = "=",
 			LeftSuper = "Windows"
 		};
-		
+
 		local ID = ElementId;
 		local GetItem = function(item)
 			if item then
@@ -2621,20 +2631,20 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			UpdateScale();
 
 			IsBinding = false;
-			
+
 			ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
 				Value = (typeof(Selected) == "string" and Selected or Selected.Name),
 			};
-			
+
 			config.Callback(typeof(Selected) == "string" and Selected or Selected.Name);
 		end);
-		
+
 		ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
 			Value = (typeof(config.Default) == "string" and config.Default or config.Default.Name),
 		};
-		
+
 		ElementId += 1;
-		
+
 		local tableback  ={
 			Edit = function(self , Value)
 				PText.Text = Value				
@@ -2645,10 +2655,14 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				VText.Text = GetItem(config.Default);
 
 				UpdateScale();
-
+				
+				local Key = (typeof(config.Default) == "string" and config.Default or config.Default.Name);
+				
 				ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
-					Value = (typeof(config.Default) == "string" and config.Default or config.Default.Name),
+					Value = Key,
 				};
+				
+				config.Callback(Key);
 			end,
 
 			Visible = function(self , Value)
@@ -2699,7 +2713,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -2707,7 +2721,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "Keybind_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback
 	end;
 
@@ -2716,7 +2730,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Name = config.Name or "ColorPicker";
 		config.Default = config.Default or Color3.fromRGB(255,255,255);
 		config.Callback = config.Callback or function() end;
-		
+
 		local ID = ElementId;
 		local ColorPickerFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -2798,19 +2812,19 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		local Detector = function(color)
 			config.Default = color;
 			local R,G,B = color.R * 255,color.G * 255,color.B * 255;
-			
+
 			Airflow:CreateAnimation(block,0.7,nil,{
 				BackgroundColor3 = config.Default;
 			});
-			
+
 			ElementConfigs["ColorPicker_"..config.Name.."_"..tostring(ID)] = {
 				Value = {R,G,B},
 			};
-			
+
 			config.Callback(color);
 		end;
-		
-		
+
+
 		do
 			local R,G,B = config.Default.R * 255,config.Default.G * 255,config.Default.B * 255;
 
@@ -2829,9 +2843,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		end)
 
 		Airflow:Hover(ColorPickerFrame);
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value;
@@ -2881,7 +2895,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -2889,7 +2903,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "ColorPicker_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback
 	end;
 
@@ -2897,7 +2911,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config = config or {};
 		config.Name = config.Name or "Paragraph";
 		config.Content = config.Content or nil;
-		
+
 		local ID = ElementId;
 		local ParagraphFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -2988,9 +3002,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		end;
 
 		task.delay(0.4,updateScale)
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			EditName = function(self , Value)
 				PText.Text = Value;
@@ -3040,7 +3054,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -3048,7 +3062,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "Paragraph_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback;
 	end;
 
@@ -3092,7 +3106,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			return Out;
 		end;
-		
+
 		local ID = ElementId;
 		local DropdownFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -3309,11 +3323,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 						config.Default = SelectedItems;
 						VText.Text = parse(SelectedItems)
-						
+
 						ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
 							Value = SelectedItems,
 						};
-						
+
 						config.Callback(SelectedItems)
 					end)
 				end;
@@ -3353,11 +3367,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 						VText.Text = parse(v)
 						config.Default = v;
-						
+
 						ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
 							Value = v,
 						};
-						
+
 						config.Callback(v)
 					end)
 				end;
@@ -3372,7 +3386,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				Size = UDim2.new(1, -45,0, 20)
 			})
 		end;
-		
+
 		ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
 			Value = config.Default,
 		};
@@ -3457,9 +3471,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		Change(false)
 		UpdateValueText();
-		
+
 		ElementId += 1;
-		
+
 		local tableback = {
 			Edit = function(self , Value)
 				PText.Text = Value;
@@ -3476,6 +3490,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
 					Value = Value,
 				};
+				
+				Change(ToggleValue);
+				
+				config.Callback(Value)
 			end,
 
 			Visible = function(self , Value)
@@ -3526,7 +3544,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end)
 		};
-		
+
 		ElementIDs[ID] = {
 			Name = config.Name,
 			ID = ID,
@@ -3534,15 +3552,15 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			API = tableback,
 			IDCode = "Dropdown_"..config.Name.."_"..tostring(ID),
 		};
-		
+
 		return tableback;
 	end;
-	
+
 	function elements:GetElementFromKey(key)
 		local _V = string.split(key,'_');
-		
+
 		local ID = _V[#_V];
-		
+
 		return ElementIDs[ID] or ElementIDs[tostring(ID)] or (function()
 			for i,v in next , ElementIDs do
 				if v.IDCode == key then
@@ -3551,15 +3569,15 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			end;
 		end)();
 	end;
-	
+
 	function elements:GetConfigs()
 		return ElementConfigs;
 	end;
-	
+
 	function elements:GetElementFromId(id)
 		return ElementIDs[id];
 	end;
-	
+
 	function elements:GetInfo()
 		return ElementIDs;
 	end;
@@ -3578,7 +3596,7 @@ function Airflow:Init(config)
 	config.UnlockMouse = config.UnlockMouse or Airflow.Config.UnlockMouse;
 	config.IconSize = config.IconSize or Airflow.Config.IconSize;
 	config.Version = config.Version or "1.0";
-	
+
 	local Response = {
 		TabElements = {};
 		OpenedTab = nil;
@@ -3896,7 +3914,7 @@ function Airflow:Init(config)
 
 		windowName.Size = UDim2.new(0, WindowNameSize.X + 4, 0, 20)
 	end;
-	
+
 	function Response:GetTabFromKey(key)
 		for i,v in next , Response.TabConfig do
 			if (v.Name.."_"..tostring(v.ID)) == key then
@@ -3904,16 +3922,16 @@ function Airflow:Init(config)
 			end;
 		end;
 	end;
-	
+
 	function Response:GetConfigs()
 		local process = {};
-		
+
 		for i,v in next , Response.TabConfig do
 			process[v.Name.."_"..tostring(v.ID)] = v:GetConfigs();
 		end;
-		
+
 		process.VERSION = config.Version;
-		
+
 		return process;
 	end;
 
@@ -3921,7 +3939,7 @@ function Airflow:Init(config)
 		config = config or {};
 		config.Name = config.Name or "Tab";
 		config.Icon = config.Icon or "book";
-		
+
 		-- Button --
 		local InputElement = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
@@ -4076,7 +4094,7 @@ function Airflow:Init(config)
 		-- Interface --
 
 		local Bindable = Instance.new('BindableEvent',InputElement);
-		
+
 		local LeftElements = Airflow:Elements(ListLeft,Bindable,Response,"Section_"..config.Name.."_"..config.Name.."_"..tostring(#Response.TabElements).."_LEFT");
 		local RightElements = Airflow:Elements(ListLeft,Bindable,Response,"Section_"..config.Name.."_"..config.Name.."_"..tostring(#Response.TabElements).."_RIGHT");
 		local TabTable = {
@@ -4087,7 +4105,7 @@ function Airflow:Init(config)
 			Sections = {},
 			ID = #Response.TabElements,
 		};
-		
+
 		local ElementId = 1;
 
 		local ChangeValue = function(value)
@@ -4285,31 +4303,31 @@ function Airflow:Init(config)
 					Section.ClipsDescendants = true;
 				end;
 			end);
-			
+
 			local ID = "Section_"..config.Name.."_"..TabTable.Name.."_"..tostring(#Response.TabElements).."_"..tostring(ElementId);
 			local SectionElements = Airflow:Elements(Section,Bindable,Response,ID);
-			
+
 			ElementId += 1;
-			
+
 			table.insert(TabTable.Sections,{
 				Elements = SectionElements,
 				ID = ID,
 			})
-			
+
 			return SectionElements;
 		end;
-		
+
 		function TabTable:GetSectionFromKey(idx)
 			local codeX = string.split(idx,"_");
 			local ID = codeX[#codeX];
-			
+
 			for i,v in next , TabTable.Sections do
 				if v.ID == ID or tostring(v.ID) == tostring(ID) or v.ID == idx then
 					return v.Elements;
 				end;
 			end;
 		end;
-		
+
 		function TabTable:GetSectionFromId(idx)
 			for i,v in next , TabTable.Sections do
 				if v.ID == idx or tostring(v.ID) == tostring(idx) then
@@ -4317,21 +4335,21 @@ function Airflow:Init(config)
 				end;
 			end;
 		end;
-		
+
 		function TabTable:GetConfigs()
 			local sections = {};
-			
+
 			for i,v in next , TabTable.Sections do
 				sections[v.ID] = v.Elements:GetConfigs();
 			end;
-			
+
 			return {
 				Left = LeftElements:GetConfigs(),
 				Right = RightElements:GetConfigs(),
 				Sections = sections,
 			};
 		end;
-		
+
 		table.insert(Response.TabConfig,TabTable);
 
 		return TabTable;
