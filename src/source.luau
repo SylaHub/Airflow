@@ -1159,7 +1159,7 @@ do
 	ColorPicker.ZIndex = 105;
 	ColorPicker.Visible = false;
 	ColorPicker.Active = true;
-	
+
 	ColorPicker:GetPropertyChangedSignal('BackgroundTransparency'):Connect(function()
 		if ColorPicker.BackgroundTransparency <= 0.9 then
 			ColorPicker.Visible = true;
@@ -1357,19 +1357,28 @@ do
 
 	local OldCode = 0;
 	local CodeH,CodeV = 1, 1;
+	local IsPressM1 = false;
 
 	do
 		UserInputService.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				IsPressM1 = true;
+
 				if not Airflow:IsMouseOverFrame(ColorPicker) then
 					Airflow.Features:OnColorPicker(false)
 				end;
 			end;
 		end)
 
+		UserInputService.InputEnded:Connect(function(Input)
+			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
+				IsPressM1 = false;
+			end;
+		end)
+
 		ColorSelect.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do task.wait()
+				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1 do task.wait()
 					local ColorY = ColorSelect.AbsolutePosition.Y
 					local ColorYM = ColorY + ColorSelect.AbsoluteSize.Y;
 					local Value = math.clamp(Mouse.Y, ColorY, ColorYM)
@@ -1430,7 +1439,7 @@ do
 
 		ColorPick.InputBegan:Connect(function(Input)
 			if Input.UserInputType == Enum.UserInputType.MouseButton1 or Input.UserInputType == Enum.UserInputType.Touch then
-				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) do task.wait();
+				while UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) or IsPressM1 do task.wait();
 					local PosX = ColorPick.AbsolutePosition.X
 					local ScaleX = PosX + ColorPick.AbsoluteSize.X
 					local Value, PosY = math.clamp(Mouse.X, PosX, ScaleX), ColorPick.AbsolutePosition.Y
