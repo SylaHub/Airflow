@@ -2430,6 +2430,12 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				
 				if Key.KeyCode ~= Enum.KeyCode.Unknown then
 					Selected = Key.KeyCode;
+				else
+					if Key.UserInputType == Enum.UserInputType.MouseButton1 then
+						Selected = "MouseLeft";
+					elseif Key.UserInputType == Enum.UserInputType.MouseButton2 then
+						Selected = "MouseRight";
+					end;
 				end;
 			end;
 
@@ -2441,7 +2447,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			IsBinding = false;
 
-			config.Callback(Selected.Name);
+			config.Callback(typeof(Selected) == "string" and Selected or Selected.Name);
 		end);
 		
 		return {
