@@ -11,7 +11,7 @@ keybnd:AddFrame({
 })
 
 keybnd:AddFrame({
-	Key = "Duck Peek",
+	Key = "Third Person",
 	Value = "[ enbaled ]"
 })
 
