@@ -4700,8 +4700,8 @@ function Airflow:Init(config)
 		end
 	end);
 
-	UserInputService.InputBegan:Connect(function(input)
-		if input.KeyCode.Name == config.Keybind or input.KeyCode == config.Keybind then
+	UserInputService.InputBegan:Connect(function(input,IsType)
+		if (input.KeyCode.Name == config.Keybind or input.KeyCode == config.Keybind) and not IsType then
 			Response.Toggle = not Response.Toggle;
 
 			ToggleWindow(Response.Toggle);
