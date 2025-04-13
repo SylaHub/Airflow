@@ -1,5 +1,20 @@
 local Airflow = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/4lpaca-pin/Airflow/refs/heads/main/src/source.luau"))();
 
+local keybnd = Airflow:DrawList({
+	Name = "keybinds",
+	Icon = "keyboard"
+})
+
+keybnd:AddFrame({
+	Key = "Duck Peek",
+	Value = "[ enbaled ]"
+})
+
+keybnd:AddFrame({
+	Key = "Duck Peek",
+	Value = "[ enbaled ]"
+})
+
 local Window = Airflow:Init({
 	Name = "airflow",
 	Keybind = "LeftControl",
@@ -99,6 +114,15 @@ sec:AddDropdown({
 		"Item"
 	},
 	Callback = print
+})
+
+sec:AddTextbox({
+	Name = "TextBox", 
+	Numeric = false,
+	Placeholder = "Placeholder",
+	Default = "",
+	Finished = true,
+	Callback = print,
 })
 
 sec:AddColorPicker({
