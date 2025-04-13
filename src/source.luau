@@ -18,6 +18,9 @@ export type GlobalConfig = {
 	Values : {string},
 	Multi : boolean,
 	Position : string,
+	Numeric : boolean,
+	Finished : boolean,
+	Placeholder : string
 };
 
 export type Elements = {
@@ -50,6 +53,12 @@ export type Elements = {
 		Visible : (self , Value: boolean) -> nil,
 		Destroy : (self ) -> nil,
 		SetValue : (self ,Value : string & Enum.KeyCode) -> any,
+	},
+	AddTextbox : (self,config : GlobalConfig) -> {
+		Edit : (self, Value: string) -> nil,
+		Visible : (self , Value: boolean) -> nil,
+		Destroy : (self ) -> nil,
+		SetValue : (self ,Value : string) -> any,
 	},
 	AddColorPicker : (self,config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
@@ -121,7 +130,7 @@ end;
 
 -- Airflow --
 local Airflow = {
-	Version = "1.1",
+	Version = "1.2",
 	ScreenGui = AirflowUI,
 	Config = {
 		Scale = UDim2.new(0.1, 515, 0.1, (UserInputService.TouchEnabled and 345) or 395),
@@ -956,6 +965,8 @@ local Airflow = {
 	},
 };
 
+
+
 -- File Manager --
 do
 
@@ -968,6 +979,8 @@ do
 			element:SetDefault(value);
 		elseif type == "Slider" then
 			element:SetValue(value);
+		elseif type == "TextBox" then
+			element:SetValue(value);
 		elseif type == "ColorPicker" then
 			element:SetValue(Color3.fromRGB(value[1],value[2],value[3]));
 		end;
@@ -976,6 +989,7 @@ do
 	local ParserObject = function(model, cfg)
 		for i,v in next , cfg do
 			local element = model:GetElementFromKey(i);
+			
 			local Type = string.split(i,'_')[1];
 
 			if element.Type == Type then
@@ -991,19 +1005,19 @@ do
 
 		if WinCFG.VERSION ~= VERSION then
 			warn("VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]");
-			return "VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]";
+			return false , "VERSION mismatch [Window: "..tostring(WinCFG.VERSION)..", File: "..tostring(VERSION).."]";
 		end;
 
 		for Tab,Value in next , config do
 			local WindowTab : Tab = window:GetTabFromKey(tostring(Tab));
 
 			if WindowTab then
-
 				local Left = Value.Left;
 				local Right = Value.Right;
 				local Sections = Value.Sections;
 
 				ParserObject(WindowTab.Left,Left);
+				
 				ParserObject(WindowTab.Right,Right);
 
 				for i,v in next , Sections do
@@ -1019,23 +1033,32 @@ do
 				warn('Tab not found +1');
 			end;
 		end;
+		
+		return true;
 	end;
 
 	function Airflow.FileManager:WriteConfig(Window,path : string)
 		local config = Window:GetConfigs();
 		local mem = game:GetService('HttpService'):JSONEncode(config);
-		
+
 		if writefile then
 			writefile(path,mem);
 		end;
-		
+
 		return mem;
 	end;
+	
+	function Airflow.FileManager:GetConfig(Window)
+		local config = Window:GetConfigs();
+		local mem = game:GetService('HttpService'):JSONEncode(config);
 
+		return mem;
+	end;
+	
 	function Airflow.FileManager:LoadConfig(Window,path : string,VERSION : string)
 		local content = readfile(path);
 		local Code = game:GetService('HttpService'):JSONDecode(content);
-		
+
 		return Parser(Code,Window,VERSION or "1.0");
 	end;
 
@@ -1043,6 +1066,14 @@ do
 		local Code = game:GetService('HttpService'):JSONDecode(str);
 
 		return Parser(Code,Window,VERSION or "1.0");
+	end;
+	
+	function Airflow.FileManager:GetVersion(path : string)
+		local Code = game:GetService('HttpService'):JSONDecode(readfile(path));
+
+		if Code.VERSION then
+			return Code.VERSION;
+		end;
 	end;
 end;
 
@@ -1069,13 +1100,13 @@ function Airflow:IsMouseOverFrame(Frame) : boolean
 end;
 
 function Airflow:GetCalculatePosition(planePos: number, planeNormal: number, rayOrigin: number, rayDirection: number) : number
-	local n = planeNormal
-	local d = rayDirection
-	local v = rayOrigin - planePos
+	local n = planeNormal;
+	local d = rayDirection;
+	local v = rayOrigin - planePos;
 
-	local num = (n.x * v.x) + (n.y * v.y) + (n.z * v.z)
-	local den = (n.x * d.x) + (n.y * d.y) + (n.z * d.z)
-	local a = -num / den
+	local num = (n.x * v.x) + (n.y * v.y) + (n.z * v.z);
+	local den = (n.x * d.x) + (n.y * d.y) + (n.z * d.z);
+	local a = -num / den;
 
 	return rayOrigin + (a * rayDirection);
 end;
@@ -1236,7 +1267,7 @@ do
 	local UICorner_5 = Instance.new("UICorner")
 	local Text_2 = Instance.new("TextLabel")
 
-	ColorPicker.Name = "ColorPicker"
+	ColorPicker.Name = Airflow:RandomString()
 	ColorPicker.Parent = Airflow.ScreenGui;
 	ColorPicker.AnchorPoint = Vector2.new(0.5, 0.5)
 	ColorPicker.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -1268,7 +1299,7 @@ do
 	UIStroke.Color = Color3.fromRGB(83, 83, 83)
 	UIStroke.Parent = ColorPicker
 
-	ColorPick.Name = "ColorPick"
+	ColorPick.Name = Airflow:RandomString()
 	ColorPick.Parent = ColorPicker
 	ColorPick.BackgroundColor3 = Color3.fromRGB(255, 0, 4)
 	ColorPick.BorderColor3 = Color3.fromRGB(0, 0, 0)
@@ -1283,7 +1314,7 @@ do
 	UICorner_2.CornerRadius = UDim.new(0, 3)
 	UICorner_2.Parent = ColorPick
 
-	mouse.Name = "mouse"
+	mouse.Name = Airflow:RandomString()
 	mouse.Parent = ColorPick
 	mouse.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	mouse.BackgroundTransparency = 1.000
@@ -1296,7 +1327,7 @@ do
 	mouse.ImageTransparency = 1;
 	mouse.AnchorPoint = Vector2.new(0.5,0.5);
 
-	ColorSelect.Name = "ColorSelect"
+	ColorSelect.Name = Airflow:RandomString()
 	ColorSelect.Parent = ColorPicker
 	ColorSelect.AnchorPoint = Vector2.new(1, 0)
 	ColorSelect.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1315,7 +1346,7 @@ do
 	UICorner_3.CornerRadius = UDim.new(0, 3)
 	UICorner_3.Parent = ColorSelect
 
-	move.Name = "move"
+	move.Name = Airflow:RandomString()
 	move.Parent = ColorSelect
 	move.AnchorPoint = Vector2.new(0.5, 0)
 	move.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1326,7 +1357,7 @@ do
 	move.Size = UDim2.new(1, 8, 0, 2)
 	move.ZIndex = 108
 
-	left.Name = "left"
+	left.Name = Airflow:RandomString()
 	left.Parent = move
 	left.AnchorPoint = Vector2.new(0, 0.5)
 	left.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1337,7 +1368,7 @@ do
 	left.ZIndex = 109
 	left.BackgroundTransparency = 1;
 
-	right.Name = "right"
+	right.Name = Airflow:RandomString()
 	right.Parent = move
 	right.AnchorPoint = Vector2.new(1, 0.5)
 	right.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1348,7 +1379,7 @@ do
 	right.ZIndex = 109
 	right.BackgroundTransparency = 1
 
-	Copy.Name = "Copy"
+	Copy.Name = Airflow:RandomString()
 	Copy.Parent = ColorPicker
 	Copy.AnchorPoint = Vector2.new(0, 1)
 	Copy.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
@@ -1363,7 +1394,7 @@ do
 	UICorner_4.CornerRadius = UDim.new(0, 4)
 	UICorner_4.Parent = Copy
 
-	Text.Name = "Text"
+	Text.Name = Airflow:RandomString()
 	Text.Parent = Copy
 	Text.AnchorPoint = Vector2.new(0.5, 0.5)
 	Text.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -1380,7 +1411,7 @@ do
 	Text.TextWrapped = true
 	Text.TextTransparency = 1;
 
-	Paste.Name = "Paste"
+	Paste.Name = Airflow:RandomString()
 	Paste.Parent = ColorPicker
 	Paste.AnchorPoint = Vector2.new(1, 1)
 	Paste.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
@@ -1395,7 +1426,7 @@ do
 	UICorner_5.CornerRadius = UDim.new(0, 4)
 	UICorner_5.Parent = Paste
 
-	Text_2.Name = "Text"
+	Text_2.Name = Airflow:RandomString()
 	Text_2.Parent = Paste
 	Text_2.AnchorPoint = Vector2.new(0.5, 0.5)
 	Text_2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2038,9 +2069,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				ElementConfigs["Toggle_"..config.Name.."_"..tostring(ID)] = {
 					Value = config.Default;
 				};
-				
+
 				BindableToggle:Fire(config.Default);
-				
+
 				config.Callback(config.Default)
 			end,
 
@@ -2355,11 +2386,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				config.Default = Value;
 				slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0);
 				VText.Text = tostring(Value)..tostring(config.Type)
-				
+
 				ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 					Value = config.Default,
 				};
-				
+
 				config.Callback(Value)
 			end,
 
@@ -2655,13 +2686,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				VText.Text = GetItem(config.Default);
 
 				UpdateScale();
-				
+
 				local Key = (typeof(config.Default) == "string" and config.Default or config.Default.Name);
-				
+
 				ElementConfigs["Keybind_"..config.Name.."_"..tostring(ID)] = {
 					Value = Key,
 				};
-				
+
 				config.Callback(Key);
 			end,
 
@@ -2724,7 +2755,266 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		return tableback
 	end;
+	
+	function elements:AddTextbox(config)
+		config = config or {};
+		config.Name = config.Name or "TextBox";
+		config.Default = config.Default or "";
+		config.Placeholder = config.Placeholder or "	";
+		config.Numeric = config.Numeric or false;
+		config.Finished = config.Finished or false;
+		config.Callback = config.Callback or function() end;
 
+		local ID = ElementId;
+		
+		local TextboxFrame = Instance.new("Frame")
+		local UICorner = Instance.new("UICorner")
+		local PText = Instance.new("TextLabel")
+		local block = Instance.new("Frame")
+		local UICorner_2 = Instance.new("UICorner")
+		local TextBox = Instance.new("TextBox")
+
+		TextboxFrame.Name = Airflow:RandomString()
+		TextboxFrame.Parent = element
+		TextboxFrame.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+		TextboxFrame.BackgroundTransparency = 1
+		TextboxFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		TextboxFrame.BorderSizePixel = 0
+		TextboxFrame.ClipsDescendants = true
+		TextboxFrame.Size = UDim2.new(1, -2, 0, 45)
+		TextboxFrame.ZIndex = 6
+
+		UICorner.CornerRadius = UDim.new(0, 4)
+		UICorner.Parent = TextboxFrame
+
+		PText.Name = Airflow:RandomString()
+		PText.Parent = TextboxFrame
+		PText.AnchorPoint = Vector2.new(0, 0.5)
+		PText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		PText.BackgroundTransparency = 1.000
+		PText.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		PText.BorderSizePixel = 0
+		PText.Position = UDim2.new(0, 10, 0.5, 0)
+		PText.Size = UDim2.new(1, 50, 0, 20)
+		PText.ZIndex = 7
+		PText.Font = Enum.Font.GothamMedium
+		PText.Text = config.Name
+		PText.TextColor3 = Color3.fromRGB(255, 255, 255)
+		PText.TextSize = 13.000
+		PText.TextTransparency = 1
+		PText.TextWrapped = true
+		PText.TextXAlignment = Enum.TextXAlignment.Left
+
+		block.Name = Airflow:RandomString()
+		block.Parent = TextboxFrame
+		block.AnchorPoint = Vector2.new(1, 0.5)
+		block.BackgroundColor3 = Color3.fromRGB(36, 35, 35)
+		block.BackgroundTransparency = 1
+		block.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		block.BorderSizePixel = 0
+		block.ClipsDescendants = true
+		block.Position = UDim2.new(1, -10, 0.5, 0)
+		block.Size = UDim2.new(0, 65, 0, 25)
+		block.ZIndex = 7
+
+		UICorner_2.CornerRadius = UDim.new(0, 4)
+		UICorner_2.Parent = block
+
+		TextBox.Parent = block
+		TextBox.AnchorPoint = Vector2.new(0.5, 0.5)
+		TextBox.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		TextBox.BackgroundTransparency = 1.000
+		TextBox.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		TextBox.BorderSizePixel = 0
+		TextBox.Position = UDim2.new(0.5, 0, 0.5, 0)
+		TextBox.Size = UDim2.new(1, -10, 1, -5)
+		TextBox.ZIndex = 8
+		TextBox.ClearTextOnFocus = false
+		TextBox.Font = Enum.Font.GothamMedium
+		TextBox.PlaceholderText = config.Placeholder
+		TextBox.Text = config.Default
+		TextBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+		TextBox.TextSize = 10.000
+		TextBox.TextTransparency = 1;
+		TextBox.TextXAlignment = Enum.TextXAlignment.Left
+		
+		local Update = function()
+			local scale = TextService:GetTextSize(TextBox.Text,TextBox.TextSize,TextBox.Font,Vector2.new(math.huge,math.huge));
+			local Base = TextService:GetTextSize(TextBox.PlaceholderText,TextBox.TextSize,TextBox.Font,Vector2.new(math.huge,math.huge));
+			local Sty = TextService:GetTextSize(PText.Text,PText.TextSize,PText.Font,Vector2.new(math.huge,math.huge));
+			
+			local MainScale = ((scale.X > Base.X) and scale.X) or Base.X;
+			
+			if scale.X > (Base.X + 5) then
+				TextBox.TextXAlignment = Enum.TextXAlignment.Left;
+			else
+				TextBox.TextXAlignment = Enum.TextXAlignment.Center;
+			end;
+			
+			Airflow:CreateAnimation(block,0.3,nil,{
+				Size = UDim2.new(0, math.min(MainScale + 10,TextboxFrame.AbsoluteSize.X - (Sty.X + 25)), 0, 25)
+			})
+		end;
+		
+		if OnChange:GetAttribute('Value') then
+			task.delay(0.5,Airflow.CreateAnimation,Airflow,block,0.5,nil,{
+				BackgroundTransparency = 0.500
+			})
+
+			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
+				TextTransparency = 0.3
+			})
+			
+			task.delay(0.5,Airflow.CreateAnimation,Airflow,TextBox,0.5,nil,{
+				TextTransparency = 0
+			})
+
+			task.delay(0.4,Airflow.CreateAnimation,Airflow,TextboxFrame,0.5,nil,{
+				BackgroundTransparency = 0.800,
+			})
+		end;
+		
+		Update();
+		
+		TextBox:GetPropertyChangedSignal('Text'):Connect(Update);
+		
+		ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
+			Value = config.Default,
+		};
+		
+		local parse = function(text)
+			if not text then
+				return "";	
+			end;
+			
+			if config.Numeric then
+				local out = string.gsub(tostring(text), '[^0-9.]', '')
+
+				if tonumber(out) then
+					return tonumber(out);
+				end;
+
+				return nil;
+			end;
+
+			return text;
+		end;
+		
+		Airflow:Hover(TextboxFrame);
+		
+		if config.Finished then
+			
+			TextBox:GetPropertyChangedSignal('Text'):Connect(function()
+				TextBox.Text = parse(TextBox.Text);
+			end);
+			
+			TextBox.FocusLost:Connect(function()
+				local value = parse(TextBox.Text);
+				
+				if value then
+					TextBox.Text = tostring(value);
+					config.Callback(value);
+				end;
+				
+				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
+					Value = value,
+				};
+			end)
+			
+		else
+			TextBox:GetPropertyChangedSignal('Text'):Connect(function()
+				local value = parse(TextBox.Text);
+				
+				if value then
+					TextBox.Text = tostring(value);
+					
+					config.Callback(value);
+				else
+					TextBox.Text = string.gsub(TextBox.Text, '[^0-9.]', '');
+				end;
+				
+				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
+					Value = value,
+				};
+			end);
+		end;
+		
+		ElementId += 1;
+
+		local tableback = {
+			Edit = function(self , Value)
+				PText.Text = Value;
+			end,
+
+			SetValue = function(self , value)
+				TextBox.Text = parse(value);
+				
+				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
+					Value = parse(value),
+				};
+				
+				config.Callback(value);
+			end,
+
+			Visible = function(self , Value)
+				TextboxFrame.Visible = Value		
+			end,
+
+			Destroy = function(self)
+				TextboxFrame:Destroy();		
+			end,
+
+			Signal = OnChange.Event:Connect(function(value)
+				if value then
+					task.wait(delayTick);
+					
+					Airflow:CreateAnimation(block,0.7,nil,{
+						BackgroundTransparency = 0.500
+					})
+					
+					Airflow:CreateAnimation(PText,0.7,nil,{
+						TextTransparency = 0.3
+					})
+					
+					Airflow:CreateAnimation(TextBox,0.7,nil,{
+						TextTransparency = 0
+					})
+
+					Airflow:CreateAnimation(TextboxFrame,0.6,nil,{
+						BackgroundTransparency = 0.800,
+					})
+					
+				else
+					Airflow:CreateAnimation(block,0.5,nil,{
+						BackgroundTransparency = 1
+					})
+
+					Airflow:CreateAnimation(PText,0.5,nil,{
+						TextTransparency = 1
+					})
+
+					Airflow:CreateAnimation(TextBox,0.5,nil,{
+						TextTransparency = 1
+					})
+
+					Airflow:CreateAnimation(TextboxFrame,0.5,nil,{
+						BackgroundTransparency = 1,
+					})
+				end
+			end)
+		};
+
+		ElementIDs[ID] = {
+			Name = config.Name,
+			ID = ID,
+			Type = "TextBox",
+			API = tableback,
+			IDCode = "TextBox_"..config.Name.."_"..tostring(ID),
+		};
+
+		return tableback
+	end;
+	
 	function elements:AddColorPicker(config)
 		config = config or {};
 		config.Name = config.Name or "ColorPicker";
@@ -2740,7 +3030,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		local UIStroke = Instance.new("UIStroke")
 		local TextButton = Instance.new("TextButton")
 
-		ColorPickerFrame.Name = "ColorPickerFrame"
+		ColorPickerFrame.Name = Airflow:RandomString()
 		ColorPickerFrame.Parent = element;
 		ColorPickerFrame.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
 		ColorPickerFrame.BackgroundTransparency = 1
@@ -2752,7 +3042,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		UICorner.CornerRadius = UDim.new(0, 4)
 		UICorner.Parent = ColorPickerFrame
 
-		PText.Name = "PText"
+		PText.Name = Airflow:RandomString()
 		PText.Parent = ColorPickerFrame
 		PText.AnchorPoint = Vector2.new(0, 0.5)
 		PText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -2771,7 +3061,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		PText.TextXAlignment = Enum.TextXAlignment.Left
 
-		block.Name = "block"
+		block.Name = Airflow:RandomString()
 		block.Parent = ColorPickerFrame
 		block.AnchorPoint = Vector2.new(1, 0.5)
 		block.BackgroundColor3 = config.Default;
@@ -2811,6 +3101,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		local Detector = function(color)
 			config.Default = color;
+			
 			local R,G,B = color.R * 255,color.G * 255,color.B * 255;
 
 			Airflow:CreateAnimation(block,0.7,nil,{
@@ -3198,7 +3489,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		ImageLabel.Image = "rbxassetid://10709790948"
 		ImageLabel.ImageTransparency = 1
 
-		DropdownInner.Name = "DropdownInner"
+		DropdownInner.Name = Airflow:RandomString()
 		DropdownInner.AnchorPoint = Vector2.new(0.5,0)
 		DropdownInner.Parent = block
 		DropdownInner.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
@@ -3278,7 +3569,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end;
 		end;
-
+		
+		local scale = TextService:GetTextSize(VText.Text,VText.TextSize,VText.Font,Vector2.new(math.huge,math.huge));
+		local LongestSize = scale.X;
+		
 		local refresh = function()
 			for i,v in next,  ScrollingFrame:GetChildren() do
 				if v:IsA('TextButton') then
@@ -3292,7 +3586,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				for i,v in next , config.Values do
 					local InputButton = Instance.new("TextButton")
 
-					InputButton.Name = "InputButton"
+					InputButton.Name = Airflow:RandomString()
 					InputButton.Parent = ScrollingFrame;
 					InputButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					InputButton.BackgroundTransparency = 1.000
@@ -3311,7 +3605,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 						InputButton.TextTransparency = 0;
 						SelectedItems[v] = true;
 					end;
-
+					
+					local scale = TextService:GetTextSize(InputButton.Text,InputButton.TextSize,InputButton.Font,Vector2.new(math.huge,math.huge));
+					
+					if scale.X > LongestSize then
+						LongestSize = scale.X;
+					end;
+					
 					InputButton.MouseButton1Click:Connect(function()
 						SelectedItems[v] = not SelectedItems[v];
 
@@ -3336,7 +3636,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				for i,v in next , config.Values do
 					local InputButton = Instance.new("TextButton")
 
-					InputButton.Name = "InputButton"
+					InputButton.Name = Airflow:RandomString()
 					InputButton.Parent = ScrollingFrame;
 					InputButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 					InputButton.BackgroundTransparency = 1.000
@@ -3356,7 +3656,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 						InputButton.TextTransparency = 0;
 						SelectedItem = InputButton;
 					end;
+					
+					local scale = TextService:GetTextSize(InputButton.Text,InputButton.TextSize,InputButton.Font,Vector2.new(math.huge,math.huge));
 
+					if scale.X > LongestSize then
+						LongestSize = scale.X;
+					end;
+					
 					InputButton.MouseButton1Click:Connect(function()
 						if SelectedItem then
 							SelectedItem.TextTransparency = 0.5;
@@ -3404,14 +3710,15 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			local MaxSize = (200 - NameScale.X) + DropdownFrame.AbsoluteSize.X / 10;
 
 			if Value then
-
+				local TargetScale = (scale.X > LongestSize and scale.X) or LongestSize;
+					
 				Airflow:CreateAnimation(block,0.35,nil,{
 					BackgroundTransparency = 0.5,
-					Size = UDim2.new(0, math.clamp((scale.X + 15) + 37,75,MaxSize),0, 30)
+					Size = UDim2.new(0, math.clamp((TargetScale + 15) + 37,75,MaxSize),0, 30)
 				})
 
 				Airflow:CreateAnimation(DropdownInner,0.5,nil,{
-					Size = UDim2.new(0,math.clamp((scale.X + 15) + 37,75,MaxSize),0,math.min(UIListLayout.AbsoluteContentSize.Y + 11,150))
+					Size = UDim2.new(0,math.clamp((TargetScale + 15) + 37,75,MaxSize),0,math.min(UIListLayout.AbsoluteContentSize.Y + 11,150))
 				})
 
 				Airflow:CreateAnimation(ScrollingFrame,0.5,nil,{
@@ -3467,9 +3774,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Change(ToggleValue)
 		end);
 
-		Airflow:Hover(DropdownFrame)
+		Airflow:Hover(DropdownFrame);
 
-		Change(false)
+		Change(false);
+		
 		UpdateValueText();
 
 		ElementId += 1;
@@ -3490,9 +3798,9 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				ElementConfigs["Dropdown_"..config.Name.."_"..tostring(ID)] = {
 					Value = Value,
 				};
-				
+
 				Change(ToggleValue);
-				
+
 				config.Callback(Value)
 			end,
 
@@ -3955,7 +4263,7 @@ function Airflow:Init(config)
 		InputElement.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		InputElement.BorderSizePixel = 0
 		InputElement.ClipsDescendants = true
-		InputElement.Size = UDim2.new(1, 0, 0, 35)
+		InputElement.Size = UDim2.new(1, 0, 0, 40)
 		InputElement.ZIndex = 6
 
 		UICorner.CornerRadius = UDim.new(0, 4)
@@ -4796,7 +5104,7 @@ function Airflow:DrawList(config)
 		end;
 	end;
 
-	AirflowUI.Name = "AirflowUI"
+	AirflowUI.Name = Airflow:RandomString()
 	AirflowUI.Parent = CoreGui
 	AirflowUI.ResetOnSpawn = false
 	AirflowUI.IgnoreGuiInset = true
@@ -4806,7 +5114,7 @@ function Airflow:DrawList(config)
 	Airflow:Blur(ListFrame);
 
 	ListFrame.Active = true
-	ListFrame.Name = "ListFrame"
+	ListFrame.Name = Airflow:RandomString()
 	ListFrame.Parent = AirflowUI
 	ListFrame.BackgroundColor3 = Color3.fromRGB(166, 166, 166)
 	ListFrame.BackgroundTransparency = 1
@@ -4828,7 +5136,7 @@ function Airflow:DrawList(config)
 	UICorner.CornerRadius = UDim.new(0, 2)
 	UICorner.Parent = ListFrame
 
-	MainFrame.Name = "MainFrame"
+	MainFrame.Name = Airflow:RandomString()
 	MainFrame.Parent = ListFrame
 	MainFrame.AnchorPoint = Vector2.new(0, 1)
 	MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
@@ -4840,7 +5148,7 @@ function Airflow:DrawList(config)
 	MainFrame.Size = UDim2.new(1, 0, 1, -35)
 	MainFrame.ZIndex = 123
 
-	LineV.Name = "LineV"
+	LineV.Name = Airflow:RandomString()
 	LineV.Parent = MainFrame
 	LineV.BackgroundColor3 = Color3.fromRGB(125, 125, 125)
 	LineV.BackgroundTransparency = 1
@@ -4866,7 +5174,7 @@ function Airflow:DrawList(config)
 	UIStroke.Color = Color3.fromRGB(125, 125, 125)
 	UIStroke.Parent = ListFrame
 
-	Headers.Name = "Headers"
+	Headers.Name = Airflow:RandomString()
 	Headers.Parent = ListFrame
 	Headers.AnchorPoint = Vector2.new(0.5, 0)
 	Headers.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -4884,7 +5192,7 @@ function Airflow:DrawList(config)
 	UIListLayout_2.VerticalAlignment = Enum.VerticalAlignment.Center
 	UIListLayout_2.Padding = UDim.new(0, 5)
 
-	Icon.Name = "Icon"
+	Icon.Name = Airflow:RandomString()
 	Icon.Parent = Headers
 	Icon.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	Icon.BackgroundTransparency = 1.000
@@ -4898,7 +5206,7 @@ function Airflow:DrawList(config)
 	UICorner_2.CornerRadius = UDim.new(1, 0)
 	UICorner_2.Parent = Icon
 
-	WindowName.Name = "WindowName"
+	WindowName.Name = Airflow:RandomString()
 	WindowName.Parent = Headers
 	WindowName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	WindowName.BackgroundTransparency = 1.000
@@ -4912,7 +5220,7 @@ function Airflow:DrawList(config)
 	WindowName.TextSize = 15.000
 	WindowName.TextTransparency = 1
 
-	static.Name = "static"
+	static.Name = Airflow:RandomString()
 	static.Parent = ListFrame
 	static.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 	static.BackgroundTransparency = 1.000
@@ -4942,7 +5250,7 @@ function Airflow:DrawList(config)
 		Frame.Size = UDim2.new(1, 0, 0, 25)
 		Frame.ZIndex = 124
 
-		name.Name = "name"
+		name.Name = Airflow:RandomString()
 		name.Parent = Frame
 		name.AnchorPoint = Vector2.new(0, 0.5)
 		name.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
@@ -4958,7 +5266,7 @@ function Airflow:DrawList(config)
 		name.TextSize = 14.000
 		name.TextXAlignment = Enum.TextXAlignment.Left
 
-		value.Name = "value"
+		value.Name = Airflow:RandomString()
 		value.Parent = Frame
 		value.AnchorPoint = Vector2.new(1, 0.5)
 		value.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
