@@ -5289,8 +5289,8 @@ function Airflow:DrawList(config)
 				name.Text = config.Key
 			end,
 
-			SetValue = function(self , value)
-				config.Value = value;
+			SetValue = function(self , Value)
+				config.Value = Value;
 				value.Text = config.Value
 			end,
 
