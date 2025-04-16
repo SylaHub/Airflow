@@ -989,7 +989,7 @@ do
 	local ParserObject = function(model, cfg)
 		for i,v in next , cfg do
 			local element = model:GetElementFromKey(i);
-			
+
 			local Type = string.split(i,'_')[1];
 
 			if element.Type == Type then
@@ -1017,7 +1017,7 @@ do
 				local Sections = Value.Sections;
 
 				ParserObject(WindowTab.Left,Left);
-				
+
 				ParserObject(WindowTab.Right,Right);
 
 				for i,v in next , Sections do
@@ -1033,7 +1033,7 @@ do
 				warn('Tab not found +1');
 			end;
 		end;
-		
+
 		return true;
 	end;
 
@@ -1047,14 +1047,14 @@ do
 
 		return mem;
 	end;
-	
+
 	function Airflow.FileManager:GetConfig(Window)
 		local config = Window:GetConfigs();
 		local mem = game:GetService('HttpService'):JSONEncode(config);
 
 		return mem;
 	end;
-	
+
 	function Airflow.FileManager:LoadConfig(Window,path : string,VERSION : string)
 		local content = readfile(path);
 		local Code = game:GetService('HttpService'):JSONDecode(content);
@@ -1067,7 +1067,7 @@ do
 
 		return Parser(Code,Window,VERSION or "1.0");
 	end;
-	
+
 	function Airflow.FileManager:GetVersion(path : string)
 		local Code = game:GetService('HttpService'):JSONDecode(readfile(path));
 
@@ -2755,7 +2755,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		return tableback
 	end;
-	
+
 	function elements:AddTextbox(config)
 		config = config or {};
 		config.Name = config.Name or "TextBox";
@@ -2766,7 +2766,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Callback = config.Callback or function() end;
 
 		local ID = ElementId;
-		
+
 		local TextboxFrame = Instance.new("Frame")
 		local UICorner = Instance.new("UICorner")
 		local PText = Instance.new("TextLabel")
@@ -2837,25 +2837,25 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		TextBox.TextSize = 10.000
 		TextBox.TextTransparency = 1;
 		TextBox.TextXAlignment = Enum.TextXAlignment.Left
-		
+
 		local Update = function()
 			local scale = TextService:GetTextSize(TextBox.Text,TextBox.TextSize,TextBox.Font,Vector2.new(math.huge,math.huge));
 			local Base = TextService:GetTextSize(TextBox.PlaceholderText,TextBox.TextSize,TextBox.Font,Vector2.new(math.huge,math.huge));
 			local Sty = TextService:GetTextSize(PText.Text,PText.TextSize,PText.Font,Vector2.new(math.huge,math.huge));
-			
+
 			local MainScale = ((scale.X > Base.X) and scale.X) or Base.X;
-			
+
 			if scale.X > (Base.X + 5) then
 				TextBox.TextXAlignment = Enum.TextXAlignment.Left;
 			else
 				TextBox.TextXAlignment = Enum.TextXAlignment.Center;
 			end;
-			
+
 			Airflow:CreateAnimation(block,0.3,nil,{
 				Size = UDim2.new(0, math.min(MainScale + 10,TextboxFrame.AbsoluteSize.X - (Sty.X + 25)), 0, 25)
 			})
 		end;
-		
+
 		if OnChange:GetAttribute('Value') then
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,block,0.5,nil,{
 				BackgroundTransparency = 0.500
@@ -2864,7 +2864,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,PText,0.5,nil,{
 				TextTransparency = 0.3
 			})
-			
+
 			task.delay(0.5,Airflow.CreateAnimation,Airflow,TextBox,0.5,nil,{
 				TextTransparency = 0
 			})
@@ -2873,20 +2873,20 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				BackgroundTransparency = 0.800,
 			})
 		end;
-		
+
 		Update();
-		
+
 		TextBox:GetPropertyChangedSignal('Text'):Connect(Update);
-		
+
 		ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
 			Value = config.Default,
 		};
-		
+
 		local parse = function(text)
 			if not text then
 				return "";	
 			end;
-			
+
 			if config.Numeric then
 				local out = string.gsub(tostring(text), '[^0-9.]', '')
 
@@ -2899,46 +2899,46 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			return text;
 		end;
-		
+
 		Airflow:Hover(TextboxFrame);
-		
+
 		if config.Finished then
-			
+
 			TextBox:GetPropertyChangedSignal('Text'):Connect(function()
 				TextBox.Text = parse(TextBox.Text);
 			end);
-			
+
 			TextBox.FocusLost:Connect(function()
 				local value = parse(TextBox.Text);
-				
+
 				if value then
 					TextBox.Text = tostring(value);
 					config.Callback(value);
 				end;
-				
+
 				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
 					Value = value,
 				};
 			end)
-			
+
 		else
 			TextBox:GetPropertyChangedSignal('Text'):Connect(function()
 				local value = parse(TextBox.Text);
-				
+
 				if value then
 					TextBox.Text = tostring(value);
-					
+
 					config.Callback(value);
 				else
 					TextBox.Text = string.gsub(TextBox.Text, '[^0-9.]', '');
 				end;
-				
+
 				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
 					Value = value,
 				};
 			end);
 		end;
-		
+
 		ElementId += 1;
 
 		local tableback = {
@@ -2948,11 +2948,11 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			SetValue = function(self , value)
 				TextBox.Text = parse(value);
-				
+
 				ElementConfigs["TextBox_"..config.Name.."_"..tostring(ID)] = {
 					Value = parse(value),
 				};
-				
+
 				config.Callback(value);
 			end,
 
@@ -2967,15 +2967,15 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			Signal = OnChange.Event:Connect(function(value)
 				if value then
 					task.wait(delayTick);
-					
+
 					Airflow:CreateAnimation(block,0.7,nil,{
 						BackgroundTransparency = 0.500
 					})
-					
+
 					Airflow:CreateAnimation(PText,0.7,nil,{
 						TextTransparency = 0.3
 					})
-					
+
 					Airflow:CreateAnimation(TextBox,0.7,nil,{
 						TextTransparency = 0
 					})
@@ -2983,7 +2983,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 					Airflow:CreateAnimation(TextboxFrame,0.6,nil,{
 						BackgroundTransparency = 0.800,
 					})
-					
+
 				else
 					Airflow:CreateAnimation(block,0.5,nil,{
 						BackgroundTransparency = 1
@@ -3014,7 +3014,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		return tableback
 	end;
-	
+
 	function elements:AddColorPicker(config)
 		config = config or {};
 		config.Name = config.Name or "ColorPicker";
@@ -3101,7 +3101,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		local Detector = function(color)
 			config.Default = color;
-			
+
 			local R,G,B = color.R * 255,color.G * 255,color.B * 255;
 
 			Airflow:CreateAnimation(block,0.7,nil,{
@@ -3569,10 +3569,10 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 				end
 			end;
 		end;
-		
+
 		local scale = TextService:GetTextSize(VText.Text,VText.TextSize,VText.Font,Vector2.new(math.huge,math.huge));
 		local LongestSize = scale.X;
-		
+
 		local refresh = function()
 			for i,v in next,  ScrollingFrame:GetChildren() do
 				if v:IsA('TextButton') then
@@ -3605,13 +3605,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 						InputButton.TextTransparency = 0;
 						SelectedItems[v] = true;
 					end;
-					
+
 					local scale = TextService:GetTextSize(InputButton.Text,InputButton.TextSize,InputButton.Font,Vector2.new(math.huge,math.huge));
-					
+
 					if scale.X > LongestSize then
 						LongestSize = scale.X;
 					end;
-					
+
 					InputButton.MouseButton1Click:Connect(function()
 						SelectedItems[v] = not SelectedItems[v];
 
@@ -3656,13 +3656,13 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 						InputButton.TextTransparency = 0;
 						SelectedItem = InputButton;
 					end;
-					
+
 					local scale = TextService:GetTextSize(InputButton.Text,InputButton.TextSize,InputButton.Font,Vector2.new(math.huge,math.huge));
 
 					if scale.X > LongestSize then
 						LongestSize = scale.X;
 					end;
-					
+
 					InputButton.MouseButton1Click:Connect(function()
 						if SelectedItem then
 							SelectedItem.TextTransparency = 0.5;
@@ -3711,7 +3711,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 			if Value then
 				local TargetScale = (scale.X > LongestSize and scale.X) or LongestSize;
-					
+
 				Airflow:CreateAnimation(block,0.35,nil,{
 					BackgroundTransparency = 0.5,
 					Size = UDim2.new(0, math.clamp((TargetScale + 15) + 37,75,MaxSize),0, 30)
@@ -3777,7 +3777,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		Airflow:Hover(DropdownFrame);
 
 		Change(false);
-		
+
 		UpdateValueText();
 
 		ElementId += 1;
@@ -4156,10 +4156,15 @@ function Airflow:Init(config)
 	UIStroke.Color = Color3.fromRGB(255, 255, 255)
 	UIStroke.Parent = WindowFrame
 
-	UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.89, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.91, Color3.fromRGB(177, 177, 177)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(177, 177, 177))}
-	UIGradient.Rotation = -90
-	UIGradient.Parent = UIStroke
-
+	UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.499, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.5, Color3.fromRGB(177, 177, 177)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(177, 177, 177))}
+	UIGradient.Rotation = -90;
+	UIGradient.Parent = UIStroke;
+	UIGradient.Offset = Vector2.new(0,-((MainFrame.AbsoluteSize.Y / WindowFrame.AbsoluteSize.Y) / 2.15));
+	
+	MainFrame:GetPropertyChangedSignal('Size'):Connect(function()
+		UIGradient.Offset = Vector2.new(0,-((MainFrame.AbsoluteSize.Y / WindowFrame.AbsoluteSize.Y) / 2.15));
+	end);
+	
 	Headers.Name = Airflow:RandomString()
 	Headers.Parent = WindowFrame
 	Headers.AnchorPoint = Vector2.new(0.5, 0)
@@ -4915,7 +4920,7 @@ function Airflow:Init(config)
 				TweenService:Create(WindowFrame , TweenInfo.new(0.05),{
 					Size = Offset,
 				}):Play();
-
+				
 				config.Scale = Offset;
 			end;
 		end);
@@ -5466,15 +5471,26 @@ do
 			local TitleScale = TextService:GetTextSize(Title.Text,Title.TextSize,Title.Font,Vector2.new(math.huge,math.huge));
 
 			if not Content.Text:byte() then
-				Frame.Size = UDim2.fromOffset(TitleScale.X + 5 , 45);
-				MainFrame.Size = UDim2.fromOffset(TitleScale.X + 5 , 40);
+				
+				Airflow:CreateAnimation(Frame,0.2,nil,{
+					Size = UDim2.fromOffset(TitleScale.X + 5 , 45);
+				});
+				
+				Airflow:CreateAnimation(MainFrame,0.2,nil,{
+					Size = UDim2.fromOffset(TitleScale.X + 5 , 40);
+				});
 			else
 				local ContentScale = TextService:GetTextSize(Content.Text,Content.TextSize,Content.Font,Vector2.new(math.huge,math.huge));
 
 				local Long = ((ContentScale.X > TitleScale.X) and ContentScale.X) or TitleScale.X;
 
-				Frame.Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 30);
-				MainFrame.Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 25);
+				Airflow:CreateAnimation(Frame,0.2,nil,{
+					Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 30);
+				});
+
+				Airflow:CreateAnimation(MainFrame,0.2,nil,{
+					Size = UDim2.fromOffset(Long + 10 , ContentScale.Y + 25);
+				});
 			end;
 		end;
 
@@ -5483,18 +5499,42 @@ do
 		Airflow:CreateAnimation(MainFrame,0.4,nil,{
 			Position = UDim2.fromScale(0,0)
 		})
-
-		task.delay(config.Duration,function()
-			Airflow:CreateAnimation(MainFrame,0.4,nil,{
-				Position = UDim2.new(1.5,100,0,0)
-			}).Completed:Connect(function()
-				Airflow:CreateAnimation(Frame,0.4,nil,{
-					Size = UDim2.fromScale(0,0)
+		
+		if typeof(config.Duration) == 'boolean' then
+			return {
+				Close = function()
+					Airflow:CreateAnimation(MainFrame,0.4,nil,{
+						Position = UDim2.new(1.5,100,0,0)
+					}).Completed:Connect(function()
+						Airflow:CreateAnimation(Frame,0.4,nil,{
+							Size = UDim2.fromScale(0,0)
+						}).Completed:Connect(function()
+							Frame:Destroy()
+						end)
+					end)
+				end,
+				SetText = function(self , i)
+					Title.Text = i;
+					UpdateScale();
+				end,
+				SetContent = function(self , i)
+					Content.Text = i;
+					UpdateScale();
+				end,
+			}
+		else
+			task.delay(config.Duration,function()
+				Airflow:CreateAnimation(MainFrame,0.4,nil,{
+					Position = UDim2.new(1.5,100,0,0)
 				}).Completed:Connect(function()
-					Frame:Destroy()
+					Airflow:CreateAnimation(Frame,0.4,nil,{
+						Size = UDim2.fromScale(0,0)
+					}).Completed:Connect(function()
+						Frame:Destroy()
+					end)
 				end)
 			end)
-		end)
+		end;
 	end;
 end;
 
