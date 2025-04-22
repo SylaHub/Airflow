@@ -3898,7 +3898,7 @@ function Airflow:Init(config)
 	config.Name = config.Name or "airflow";
 	config.Logo = config.Logo or Airflow.Config.Logo;
 	config.Scale = config.Scale or Airflow.Config.Scale;
-	config.Hightlight = config.Highlight config.Hightlight or Airflow.Config.Hightlight;
+	config.Hightlight = config.Highlight or config.Hightlight or Airflow.Config.Hightlight;
 	config.Keybind = config.Keybind or Airflow.Config.Keybind;
 	config.Resizable = config.Resizable or Airflow.Config.Resizable;
 	config.UnlockMouse = config.UnlockMouse or Airflow.Config.UnlockMouse;
