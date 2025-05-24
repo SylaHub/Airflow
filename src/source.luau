@@ -112,6 +112,7 @@ export type LoaderVersion = {
 export type Loader = {
 	Name : string,
 	Icon : string,
+	Hightlight : Color3,
 	DrawGame : (loader_game : LoaderGame) -> {
 		DrawVersion : (loader_version : LoaderVersion) -> LoaderVersion,
 	},
@@ -5580,6 +5581,7 @@ function Airflow:DrawLoader(loader_config : Loader)
 	loader_config = loader_config or {};
 	loader_config.Name = loader_config.Name or "airflow";
 	loader_config.Icon = loader_config.Icon or Airflow.Config.Logo;
+	loader_config.Highlight = loader_config.Highlight or Airflow.Config.Hightlight;
 	
 	local enum = {
 		StatusTypes = {
@@ -5853,7 +5855,7 @@ function Airflow:DrawLoader(loader_config : Loader)
 		Line.Name = "Line"
 		Line.Parent = LoaderGame
 		Line.AnchorPoint = Vector2.new(1, 0.5)
-		Line.BackgroundColor3 = Color3.fromRGB(125, 249, 255)
+		Line.BackgroundColor3 = loader_config.Highlight
 		Line.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		Line.BorderSizePixel = 0
 		Line.Position = UDim2.new(1, 0, 0.5, 0)
@@ -6157,7 +6159,7 @@ function Airflow:DrawLoader(loader_config : Loader)
 			Line.Name = "Line"
 			Line.Parent = LoaderVersion
 			Line.AnchorPoint = Vector2.new(0, 0.5)
-			Line.BackgroundColor3 = Color3.fromRGB(125, 249, 255)
+			Line.BackgroundColor3 = loader_config.Highlight
 			Line.BorderColor3 = Color3.fromRGB(0, 0, 0)
 			Line.BorderSizePixel = 0
 			Line.Position = UDim2.new(0, 0, 0.5, 0)
