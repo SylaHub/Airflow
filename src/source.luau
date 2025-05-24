@@ -20,7 +20,10 @@ export type GlobalConfig = {
 	Position : string,
 	Numeric : boolean,
 	Finished : boolean,
-	Placeholder : string
+	Placeholder : string,
+	ValueTexts : {
+		[number]:string
+	}
 };
 
 export type Elements = {
@@ -40,7 +43,10 @@ export type Elements = {
 		Visible : (self, Value: boolean) -> nil,
 		Destroy : (self) -> nil,
 		SetValue : (self,Value : boolean) -> any,
-		AutomaticVisible : (self , config : {Target : boolean , Elements : {Elements}}) -> RBXScriptSignal,
+		AutomaticVisible : (self , config : {
+			Target : boolean ,
+			Elements : {Elements}
+		}) -> RBXScriptSignal,
 	},
 	AddSlider : (self,config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
@@ -51,40 +57,40 @@ export type Elements = {
 	AddKeybind : (self,config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
 		Visible : (self , Value: boolean) -> nil,
-		Destroy : (self ) -> nil,
+		Destroy : (self) -> nil,
 		SetValue : (self ,Value : string & Enum.KeyCode) -> any,
 	},
 	AddTextbox : (self,config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
 		Visible : (self , Value: boolean) -> nil,
-		Destroy : (self ) -> nil,
+		Destroy : (self) -> nil,
 		SetValue : (self ,Value : string) -> any,
 	},
 	AddColorPicker : (self,config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
 		SetValue : (self, Value: Color3) -> nil,
 		Visible : (self , Value: boolean) -> nil,
-		Destroy : (self ) -> nil,
+		Destroy : (self) -> nil,
 	},
 	AddParagraph : (self,config : GlobalConfig) -> {
 		EditName : (self, Value: string) -> nil,
 		EditContent : (self, Value: string) -> nil,
 		Visible : (self , Value: boolean) -> nil,
-		Destroy : (self ) -> nil,
+		Destroy : (self) -> nil,
 	},
 	AddDropdown : (self, config : GlobalConfig) -> {
 		Edit : (self, Value: string) -> nil,
 		SetValues : (self , Value: {string}) -> nil,
 		SetDefault : (self , Value: {string} & string) -> nil,
 		Visible : (self , Value: boolean) -> nil,
-		Destroy : (self ) -> nil,
+		Destroy : (self) -> nil,
 	},
 };
 
 export type Tab = {
 	Left : Elements,
 	Right : Elements,
-	AddSection : (self,GlobalConfig) -> Elements,
+	AddSection : (self , GlobalConfig) -> Elements,
 	Disabled : boolean,
 	Disable : (self, Value: boolean , Reason : string & nil) -> any,
 };
@@ -94,6 +100,29 @@ export type KeyValue = {
 	SetKey : (self , Value: string) -> any,
 	SetValue : (self , Value: string) -> any,
 }
+
+export type LoaderVersion = {
+	Name : string,
+	Status : string,
+	LastUpdate : number | string,
+	LoadScript : string | (any) -> any,
+};
+
+
+export type Loader = {
+	Name : string,
+	Icon : string,
+	DrawGame : (loader_game : LoaderGame) -> {
+		DrawVersion : (loader_version : LoaderVersion) -> LoaderVersion,
+	},
+};
+
+export type LoaderGame = {
+	Name : string,
+	Logo : string,
+	Description : string,
+	DrawVersion : (loader_version : LoaderVersion) -> nil,
+};
 
 -- Exploit Environment --
 cloneref = cloneref or function(i) return i; end;
@@ -1138,8 +1167,8 @@ function Airflow:Blur(element : Frame) : RBXScriptSignal
 	DepthOfField.Name = Airflow:RandomString();
 
 	Part.Name = Airflow:RandomString();
-
-	return RunService.RenderStepped:Connect(function()
+	
+	local rbxsignal = RunService.RenderStepped:Connect(function()
 		if element.BackgroundTransparency < 0.7 then
 			Airflow:CreateAnimation(DepthOfField,0.1,nil,{
 				NearIntensity = 1
@@ -1191,6 +1220,14 @@ function Airflow:Blur(element : Frame) : RBXScriptSignal
 			Part.CFrame = CurrentCamera.CFrame;
 		end;
 	end);
+	
+	element.Destroying:Connect(function()
+		rbxsignal:Disconnect();
+		Part:Destroy();
+		DepthOfField:Destroy();
+	end);
+	
+	return rbxsignal;
 end;
 
 function Airflow:GetIcon(name : string) : string
@@ -2170,6 +2207,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		config.Round = config.Round or 0;
 		config.Default = config.Default or config.Min;
 		config.Type = config.Type or "";
+		config.ValueTexts = config.ValueTexts or {};
 
 		local ID = ElementId;
 		local SliderFrame = Instance.new("Frame")
@@ -2331,7 +2369,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			}):Play();
 
 			config.Default = Value;
-			VText.Text = tostring(Value)..tostring(config.Type)
+			VText.Text = (config.ValueTexts[Value] and config.ValueTexts[Value]) or tostring(Value)..tostring(config.Type);
 
 			ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 				Value = config.Default,
@@ -2385,7 +2423,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 			SetValue = function(self , Value)
 				config.Default = Value;
 				slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0);
-				VText.Text = tostring(Value)..tostring(config.Type)
+				VText.Text = (config.ValueTexts[Value] and config.ValueTexts[Value]) or tostring(Value)..tostring(config.Type);
 
 				ElementConfigs["Slider_"..config.Name.."_"..tostring(ID)] = {
 					Value = config.Default,
@@ -4160,11 +4198,11 @@ function Airflow:Init(config)
 	UIGradient.Rotation = -90;
 	UIGradient.Parent = UIStroke;
 	UIGradient.Offset = Vector2.new(0,-((MainFrame.AbsoluteSize.Y / WindowFrame.AbsoluteSize.Y) / 2.15));
-	
+
 	MainFrame:GetPropertyChangedSignal('Size'):Connect(function()
 		UIGradient.Offset = Vector2.new(0,-((MainFrame.AbsoluteSize.Y / WindowFrame.AbsoluteSize.Y) / 2.15));
 	end);
-	
+
 	Headers.Name = Airflow:RandomString()
 	Headers.Parent = WindowFrame
 	Headers.AnchorPoint = Vector2.new(0.5, 0)
@@ -4920,7 +4958,7 @@ function Airflow:Init(config)
 				TweenService:Create(WindowFrame , TweenInfo.new(0.05),{
 					Size = Offset,
 				}):Play();
-				
+
 				config.Scale = Offset;
 			end;
 		end);
@@ -5471,11 +5509,11 @@ do
 			local TitleScale = TextService:GetTextSize(Title.Text,Title.TextSize,Title.Font,Vector2.new(math.huge,math.huge));
 
 			if not Content.Text:byte() then
-				
+
 				Airflow:CreateAnimation(Frame,0.2,nil,{
 					Size = UDim2.fromOffset(TitleScale.X + 5 , 45);
 				});
-				
+
 				Airflow:CreateAnimation(MainFrame,0.2,nil,{
 					Size = UDim2.fromOffset(TitleScale.X + 5 , 40);
 				});
@@ -5499,7 +5537,7 @@ do
 		Airflow:CreateAnimation(MainFrame,0.4,nil,{
 			Position = UDim2.fromScale(0,0)
 		})
-		
+
 		if typeof(config.Duration) == 'boolean' then
 			return {
 				Close = function()
@@ -5536,6 +5574,655 @@ do
 			end)
 		end;
 	end;
+end;
+
+function Airflow:DrawLoader(loader_config : Loader)
+	loader_config = loader_config or {};
+	loader_config.Name = loader_config.Name or "airflow";
+	loader_config.Icon = loader_config.Icon or Airflow.Config.Logo;
+	
+	local enum = {
+		StatusTypes = {
+			["Online"] = "Online",
+			["Updating"] = "Updating",
+			["NotUpdate"] = "NotUpdate",
+			["Outdate"] = "Outdate",
+			["Unknow"] = "Unknow",
+
+		},
+		StatusColors = {
+			["Online"] = Color3.fromRGB(59, 230, 116),
+			["Updating"] = Color3.fromRGB(230, 225, 78),
+			["NotUpdate"] = Color3.fromRGB(230, 71, 74),
+			["Outdate"] = Color3.fromRGB(230, 109, 121),
+			["Unknow"] = Color3.fromRGB(230, 67, 69),
+		},
+		StatusTexts = {
+			["Online"] = "Online",
+			["Updating"] = "Updating",
+			["NotUpdate"] = "Not Update",
+			["Outdate"] = "Outdate",
+			["Unknow"] = "???",
+		},
+	};
+	
+	local promis = {
+		Enum = enum,	
+	};
+	
+	promis.games = {};
+	promis.isfirst = true;
+	
+	local Loader = Instance.new("ScreenGui")
+	local ExeLoader = Instance.new("Frame")
+	local UIStroke = Instance.new("UIStroke")
+	local UIGradient = Instance.new("UIGradient")
+	local UICorner = Instance.new("UICorner")
+	local Header = Instance.new("Frame")
+	local UIListLayout = Instance.new("UIListLayout")
+	local Logo = Instance.new("ImageLabel")
+	local UICorner_2 = Instance.new("UICorner")
+	local HeaderText = Instance.new("TextLabel")
+	local Body = Instance.new("Frame")
+	local TabBths = Instance.new("Frame")
+	local UICorner_3 = Instance.new("UICorner")
+	local UIStroke_2 = Instance.new("UIStroke")
+	local ScrollingFrame = Instance.new("ScrollingFrame")
+	local UIListLayout_2 = Instance.new("UIListLayout")
+	local TabFrame = Instance.new("Frame")
+	local UICorner_4 = Instance.new("UICorner")
+
+	Loader.Name = ".Loader="..Airflow:RandomString();
+	Loader.Parent = CoreGui;
+	Loader.ResetOnSpawn = false;
+	Loader.IgnoreGuiInset = true;
+	Loader.ZIndexBehavior = Enum.ZIndexBehavior.Global;
+	
+	protect_gui(Loader);
+
+	ExeLoader.Name = "ExeLoader"
+	ExeLoader.Parent = Loader
+	ExeLoader.AnchorPoint = Vector2.new(0.5, 0.5)
+	ExeLoader.BackgroundColor3 = Color3.fromRGB(77, 77, 77)
+	ExeLoader.BackgroundTransparency = 0.200
+	ExeLoader.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ExeLoader.BorderSizePixel = 0
+	ExeLoader.Position = UDim2.new(0.5, 0, 0.5, 0)
+	ExeLoader.Size = UDim2.new(0, 0, 0, 0)
+	
+	ExeLoader.ClipsDescendants = true;
+	
+	Airflow:Blur(ExeLoader);
+	Airflow:CreateAnimation(ExeLoader,1.25,Enum.EasingStyle.Quint,{
+		Size = UDim2.new(0, 450, 0, 325)
+	});
+	
+	UIStroke.Transparency = 0.680
+	UIStroke.Color = Color3.fromRGB(255, 255, 255)
+	UIStroke.Parent = ExeLoader
+
+	UIGradient.Color = ColorSequence.new{ColorSequenceKeypoint.new(0.00, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.87, Color3.fromRGB(0, 0, 0)), ColorSequenceKeypoint.new(0.88, Color3.fromRGB(177, 177, 177)), ColorSequenceKeypoint.new(1.00, Color3.fromRGB(177, 177, 177))}
+	UIGradient.Rotation = -90
+	UIGradient.Transparency = NumberSequence.new{NumberSequenceKeypoint.new(0.00, 0.60), NumberSequenceKeypoint.new(1.00, 0.60)}
+	UIGradient.Parent = UIStroke
+
+	UICorner.CornerRadius = UDim.new(0, 2)
+	UICorner.Parent = ExeLoader
+
+	Header.Name = "Header"
+	Header.Parent = ExeLoader
+	Header.AnchorPoint = Vector2.new(0.5, 0)
+	Header.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Header.BackgroundTransparency = 1.000
+	Header.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Header.BorderSizePixel = 0
+	Header.Position = UDim2.new(0.5, 0, 0, 5)
+	Header.Size = UDim2.new(1, -15, 0, 30)
+	Header.ZIndex = 3
+
+	UIListLayout.Parent = Header
+	UIListLayout.FillDirection = Enum.FillDirection.Horizontal
+	UIListLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+	UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+	UIListLayout.VerticalAlignment = Enum.VerticalAlignment.Center
+	UIListLayout.Padding = UDim.new(0, 3)
+
+	Logo.Name = "Logo"
+	Logo.Parent = Header
+	Logo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	Logo.BackgroundTransparency = 1.000
+	Logo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Logo.BorderSizePixel = 0
+	Logo.Size = UDim2.new(0, 30, 0, 30)
+	Logo.ZIndex = 5
+	Logo.Image = loader_config.Icon
+
+	UICorner_2.CornerRadius = UDim.new(1, 0)
+	UICorner_2.Parent = Logo
+
+	HeaderText.Name = "HeaderText"
+	HeaderText.Parent = Header
+	HeaderText.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	HeaderText.BackgroundTransparency = 1.000
+	HeaderText.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	HeaderText.BorderSizePixel = 0
+	HeaderText.Size = UDim2.new(0, 83, 0, 20)
+	HeaderText.Font = Enum.Font.GothamMedium
+	HeaderText.Text = loader_config.Name
+	HeaderText.TextColor3 = Color3.fromRGB(255, 255, 255)
+	HeaderText.TextSize = 15.000
+	HeaderText.TextTransparency = 0.400
+
+	Body.Name = "Body"
+	Body.Parent = ExeLoader
+	Body.AnchorPoint = Vector2.new(0, 1)
+	Body.BackgroundColor3 = Color3.fromRGB(12, 12, 12)
+	Body.BackgroundTransparency = 0.300
+	Body.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	Body.BorderSizePixel = 0
+	Body.ClipsDescendants = true
+	Body.Position = UDim2.new(0, 0, 1, 0)
+	Body.Size = UDim2.new(1, 0, 1, -40)
+	Body.ZIndex = 2
+
+	TabBths.Name = "TabBths"
+	TabBths.Parent = Body
+	TabBths.AnchorPoint = Vector2.new(0, 0.5)
+	TabBths.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+	TabBths.BackgroundTransparency = 1.000
+	TabBths.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	TabBths.BorderSizePixel = 0
+	TabBths.Position = UDim2.new(0, 5, 0.5, 0)
+	TabBths.Size = UDim2.new(0, 125, 1, -10)
+	TabBths.ZIndex = 2
+
+	UICorner_3.CornerRadius = UDim.new(0, 2)
+	UICorner_3.Parent = TabBths
+
+	UIStroke_2.Transparency = 0.550
+	UIStroke_2.Color = Color3.fromRGB(61, 61, 61)
+	UIStroke_2.Parent = TabBths
+
+	ScrollingFrame.Parent = TabBths
+	ScrollingFrame.Active = true
+	ScrollingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+	ScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+	ScrollingFrame.BackgroundTransparency = 1.000
+	ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	ScrollingFrame.BorderSizePixel = 0
+	ScrollingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+	ScrollingFrame.Size = UDim2.new(1, -5, 1, -5)
+	ScrollingFrame.ZIndex = 5
+	ScrollingFrame.ScrollBarThickness = 0
+
+	UIListLayout_2.Parent = ScrollingFrame
+	UIListLayout_2.SortOrder = Enum.SortOrder.LayoutOrder
+	UIListLayout_2.Padding = UDim.new(0, 3)
+
+	TabFrame.Name = "TabFrame"
+	TabFrame.Parent = Body
+	TabFrame.AnchorPoint = Vector2.new(0, 0.5)
+	TabFrame.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+	TabFrame.BackgroundTransparency = 1.000
+	TabFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+	TabFrame.BorderSizePixel = 0
+	TabFrame.Position = UDim2.new(0, 135, 0.5, 0)
+	TabFrame.Size = UDim2.new(1, -140, 1, -10)
+	TabFrame.ZIndex = 2
+
+	UICorner_4.CornerRadius = UDim.new(0, 2)
+	UICorner_4.Parent = TabFrame
+	
+	function promis:Update()
+		local WindowNameSize = TextService:GetTextSize(HeaderText.Text,HeaderText.TextSize,HeaderText.Font,Vector2.new(math.huge,math.huge));
+
+		HeaderText.Size = UDim2.new(0, WindowNameSize.X + 4, 0, 20)
+	end;
+	
+	promis:Update()
+	
+	function promis:DrawGame(loader_game : LoaderGame)
+		
+		loader_game = loader_game or {};
+		loader_game.Name = loader_game.Name or "Counter Strike";
+		loader_game.Logo = loader_game.Logo or "rbxassetid://75488333338873";
+		loader_game.Description = loader_game.Description or string.format("Welcome, %s!", Client.DisplayName);
+		
+		local cl_promis = {
+			Enum = enum,
+			selectedLoader = "",
+		};
+		
+		cl_promis.versions = {};
+		cl_promis.isfirst = true;
+		
+		local LoaderGame = Instance.new("Frame")
+		local UICorner = Instance.new("UICorner")
+		local GameLogo = Instance.new("ImageLabel")
+		local UICorner_2 = Instance.new("UICorner")
+		local GameName = Instance.new("TextLabel")
+		local Line = Instance.new("Frame")
+
+		LoaderGame.Name = "LoaderGame"
+		LoaderGame.Parent = ScrollingFrame
+		LoaderGame.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+		LoaderGame.BackgroundTransparency = 0.650
+		LoaderGame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		LoaderGame.BorderSizePixel = 0
+		LoaderGame.ClipsDescendants = true
+		LoaderGame.Size = UDim2.new(1, 0, 0, 35)
+		LoaderGame.ZIndex = 6
+
+		UICorner.CornerRadius = UDim.new(0, 4)
+		UICorner.Parent = LoaderGame
+
+		GameLogo.Name = "GameLogo"
+		GameLogo.Parent = LoaderGame
+		GameLogo.AnchorPoint = Vector2.new(0, 0.5)
+		GameLogo.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		GameLogo.BackgroundTransparency = 1.000
+		GameLogo.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		GameLogo.BorderSizePixel = 0
+		GameLogo.Position = UDim2.new(0, 5, 0.5, 0)
+		GameLogo.Size = UDim2.new(0, 19, 0, 19)
+		GameLogo.ZIndex = 7
+		GameLogo.Image = loader_game.Logo
+		GameLogo.ImageTransparency = 0.300
+
+		UICorner_2.CornerRadius = UDim.new(1, 0)
+		UICorner_2.Parent = GameLogo
+
+		GameName.Name = "GameName"
+		GameName.Parent = LoaderGame
+		GameName.AnchorPoint = Vector2.new(0, 0.5)
+		GameName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		GameName.BackgroundTransparency = 1.000
+		GameName.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		GameName.BorderSizePixel = 0
+		GameName.Position = UDim2.new(0, 30, 0.5, 0)
+		GameName.Size = UDim2.new(1, 50, 0, 20)
+		GameName.ZIndex = 7
+		GameName.Font = Enum.Font.GothamMedium
+		GameName.Text = loader_game.Name
+		GameName.TextColor3 = Color3.fromRGB(255, 255, 255)
+		GameName.TextSize = 13.000
+		GameName.TextTransparency = 0.300
+		GameName.TextWrapped = true
+		GameName.TextXAlignment = Enum.TextXAlignment.Left
+
+		Line.Name = "Line"
+		Line.Parent = LoaderGame
+		Line.AnchorPoint = Vector2.new(1, 0.5)
+		Line.BackgroundColor3 = Color3.fromRGB(125, 249, 255)
+		Line.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Line.BorderSizePixel = 0
+		Line.Position = UDim2.new(1, 0, 0.5, 0)
+		Line.Size = UDim2.new(0, 2, 1, 0)
+		Line.ZIndex = 8;
+		
+		----------- Menu -----------
+		
+		local bthFrame = Instance.new("Frame")
+		local versionLoaders = Instance.new("Frame")
+		local UIStroke = Instance.new("UIStroke")
+		local UICorner = Instance.new("UICorner")
+		local ScrollingFrame = Instance.new("ScrollingFrame")
+		local UIListLayout = Instance.new("UIListLayout")
+		local Description = Instance.new("TextLabel")
+		local Status = Instance.new("TextLabel")
+		local Value = Instance.new("TextLabel")
+		local LastUpdate = Instance.new("TextLabel")
+		local Value_2 = Instance.new("TextLabel")
+		local LoadButton = Instance.new("TextButton")
+		local UIStroke_2 = Instance.new("UIStroke")
+		local UICorner_2 = Instance.new("UICorner")
+
+
+		bthFrame.Name = "bthFrame"
+		bthFrame.Parent = TabFrame
+		bthFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		bthFrame.BackgroundTransparency = 1.000
+		bthFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		bthFrame.BorderSizePixel = 0
+		bthFrame.Size = UDim2.new(1, 0, 1, 0)
+		bthFrame.ZIndex = 4
+
+		versionLoaders.Name = "versionLoaders"
+		versionLoaders.Parent = bthFrame
+		versionLoaders.AnchorPoint = Vector2.new(0.5, 0)
+		versionLoaders.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+		versionLoaders.BackgroundTransparency = 1.000
+		versionLoaders.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		versionLoaders.BorderSizePixel = 0
+		versionLoaders.Position = UDim2.new(0.5, 0, 0, 0)
+		versionLoaders.Size = UDim2.new(1, -5, 0, 150)
+		versionLoaders.ZIndex = 5
+
+		UIStroke.Transparency = 0.550
+		UIStroke.Color = Color3.fromRGB(61, 61, 61)
+		UIStroke.Parent = versionLoaders
+
+		UICorner.CornerRadius = UDim.new(0, 2)
+		UICorner.Parent = versionLoaders
+
+		ScrollingFrame.Parent = versionLoaders
+		ScrollingFrame.Active = true
+		ScrollingFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+		ScrollingFrame.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		ScrollingFrame.BackgroundTransparency = 1.000
+		ScrollingFrame.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		ScrollingFrame.BorderSizePixel = 0
+		ScrollingFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+		ScrollingFrame.Size = UDim2.new(1, -5, 1, -5)
+		ScrollingFrame.ZIndex = 5
+		ScrollingFrame.ScrollBarThickness = 0
+
+		UIListLayout.Parent = ScrollingFrame
+		UIListLayout.SortOrder = Enum.SortOrder.LayoutOrder
+		UIListLayout.Padding = UDim.new(0, 3)
+
+		Description.Name = "Description"
+		Description.Parent = bthFrame
+		Description.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Description.BackgroundTransparency = 1.000
+		Description.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Description.BorderSizePixel = 0
+		Description.Position = UDim2.new(0, 2, 0, 155)
+		Description.Size = UDim2.new(1, -5, 0, 35)
+		Description.ZIndex = 2
+		Description.Font = Enum.Font.GothamMedium
+		Description.Text = loader_game.Description
+		Description.TextColor3 = Color3.fromRGB(230, 230, 230)
+		Description.TextSize = 14.000
+		Description.TextXAlignment = Enum.TextXAlignment.Left
+		Description.TextYAlignment = Enum.TextYAlignment.Top
+
+		Status.Name = "Status"
+		Status.Parent = bthFrame
+		Status.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Status.BackgroundTransparency = 1.000
+		Status.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Status.BorderSizePixel = 0
+		Status.Position = UDim2.new(0, 2, 0, 190)
+		Status.Size = UDim2.new(1, -5, 0, 15)
+		Status.ZIndex = 2
+		Status.Font = Enum.Font.GothamMedium
+		Status.Text = "Status:"
+		Status.TextColor3 = Color3.fromRGB(230, 230, 230)
+		Status.TextSize = 14.000
+		Status.TextXAlignment = Enum.TextXAlignment.Left
+
+		Value.Name = "Value"
+		Value.Parent = Status
+		Value.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Value.BackgroundTransparency = 1.000
+		Value.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Value.BorderSizePixel = 0
+		Value.Size = UDim2.new(1, 0, 1, 0)
+		Value.ZIndex = 2
+		Value.Font = Enum.Font.GothamMedium
+		Value.Text = "???"
+		Value.TextColor3 = Color3.fromRGB(7, 230, 126)
+		Value.TextSize = 14.000
+		Value.TextXAlignment = Enum.TextXAlignment.Right
+
+		LastUpdate.Name = "LastUpdate"
+		LastUpdate.Parent = bthFrame
+		LastUpdate.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		LastUpdate.BackgroundTransparency = 1.000
+		LastUpdate.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		LastUpdate.BorderSizePixel = 0
+		LastUpdate.Position = UDim2.new(0, 2, 0, 210)
+		LastUpdate.Size = UDim2.new(1, -5, 0, 15)
+		LastUpdate.ZIndex = 2
+		LastUpdate.Font = Enum.Font.GothamMedium
+		LastUpdate.Text = "Last Update:"
+		LastUpdate.TextColor3 = Color3.fromRGB(230, 230, 230)
+		LastUpdate.TextSize = 14.000
+		LastUpdate.TextXAlignment = Enum.TextXAlignment.Left
+
+		Value_2.Name = "Value"
+		Value_2.Parent = LastUpdate
+		Value_2.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+		Value_2.BackgroundTransparency = 1.000
+		Value_2.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		Value_2.BorderSizePixel = 0
+		Value_2.Size = UDim2.new(1, 0, 1, 0)
+		Value_2.ZIndex = 2
+		Value_2.Font = Enum.Font.GothamMedium
+		Value_2.Text = "???"
+		Value_2.TextColor3 = Color3.fromRGB(230, 230, 230)
+		Value_2.TextSize = 14.000
+		Value_2.TextXAlignment = Enum.TextXAlignment.Right
+
+		LoadButton.Name = "LoadButton"
+		LoadButton.Parent = bthFrame
+		LoadButton.AnchorPoint = Vector2.new(0.5, 1)
+		LoadButton.BackgroundColor3 = Color3.fromRGB(63, 63, 63)
+		LoadButton.BackgroundTransparency = 0.400
+		LoadButton.BorderColor3 = Color3.fromRGB(0, 0, 0)
+		LoadButton.BorderSizePixel = 0
+		LoadButton.Position = UDim2.new(0.5, 0, 1, -5)
+		LoadButton.Size = UDim2.new(1, -5, 0, 30)
+		LoadButton.ZIndex = 4
+		LoadButton.Font = Enum.Font.GothamMedium
+		LoadButton.Text = "Load"
+		LoadButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+		LoadButton.TextSize = 14.000
+
+		UIStroke_2.Transparency = 0.740
+		UIStroke_2.Color = Color3.fromRGB(131, 131, 131)
+		UIStroke_2.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		UIStroke_2.Parent = LoadButton
+
+		UICorner_2.CornerRadius = UDim.new(0, 2)
+		UICorner_2.Parent = LoadButton;
+		
+		function cl_promis:Visible(value)
+			if value then
+				Line.Visible = true;
+				bthFrame.Visible = true;
+				
+			else
+				Line.Visible = false;
+				bthFrame.Visible = false;
+			end;
+		end;
+		
+		function cl_promis:SetStatus(Type)
+			Value.TextColor3 = cl_promis.Enum.StatusColors[Type];
+			
+			Value.Text = cl_promis.Enum.StatusTexts[Type];
+		end;
+		
+		cl_promis:SetStatus(cl_promis.Enum.StatusTypes.Unknow);
+		
+		if promis.isfirst then
+			promis.isfirst = false;
+			
+			cl_promis:Visible(true);
+		else
+			cl_promis:Visible(false);
+		end;
+		
+		table.insert(promis.games,{
+			Callback = cl_promis.Visible,
+			_ev = cl_promis,
+			f = bthFrame,
+		});
+		
+		Airflow:NewInput(LoaderGame,function()
+			for i,v in next , promis.games do
+				if v.f == bthFrame then
+					v.Callback(v._ev,true);
+				else
+					v.Callback(v._ev,false);
+				end;
+			end;
+		end);
+		
+		local loaded = false;
+		
+		LoadButton.MouseButton1Click:Connect(function()
+			if loaded then
+				return;
+			end;
+			
+			loaded = true;
+			
+			local l,m;
+	
+			if typeof(cl_promis.selectedLoader) == "function" then
+				task.spawn(function()
+					pcall(cl_promis.selectedLoader);
+				end)
+				l = true;
+				
+			else
+				task.spawn(function()
+					l , m = pcall(function()
+						loadstring(cl_promis.selectedLoader)();
+					end);
+				end);
+			end;
+			
+			task.wait(0.1);
+			
+			if l then
+				Airflow:Notify({
+					Content = "Loading",
+					Title = "Loader",
+					Duration = 5,
+				});
+				
+				Airflow:CreateAnimation(ExeLoader,0.75,Enum.EasingStyle.Quint,{
+					Size = UDim2.new(0, 0, 0, 0)
+				});
+				
+				task.wait(1.25)
+				
+				Loader:Destroy();
+			else
+				loaded = false;
+				Airflow:Notify({
+					Content = "Failed to Load\n"..(m or "failed"),
+					Title = "Error",
+					Duration = 5,
+				});
+			end
+		end);
+		
+		function cl_promis:DrawVersion(loader_version : LoaderVersion)
+			loader_version = loader_version or {};
+			loader_version.Name = loader_version.Name or "Live";
+			loader_version.Status = loader_version.Status or cl_promis.StatusTypes.Unknow;
+			loader_version.LastUpdate = loader_version.LastUpdate or tick();
+			
+			local LoaderVersion = Instance.new("Frame")
+			local UICorner = Instance.new("UICorner")
+			local GameName = Instance.new("TextLabel")
+			local Line = Instance.new("Frame")
+
+			LoaderVersion.Name = "LoaderVersion"
+			LoaderVersion.Parent = ScrollingFrame
+			LoaderVersion.BackgroundColor3 = Color3.fromRGB(91, 91, 91)
+			LoaderVersion.BackgroundTransparency = 1.000
+			LoaderVersion.BorderColor3 = Color3.fromRGB(255, 255, 255)
+			LoaderVersion.BorderSizePixel = 0
+			LoaderVersion.ClipsDescendants = true
+			LoaderVersion.Size = UDim2.new(1, 0, 0, 35)
+			LoaderVersion.ZIndex = 6
+
+			UICorner.CornerRadius = UDim.new(0, 4)
+			UICorner.Parent = LoaderVersion
+
+			GameName.Name = "GameName"
+			GameName.Parent = LoaderVersion
+			GameName.AnchorPoint = Vector2.new(0, 0.5)
+			GameName.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+			GameName.BackgroundTransparency = 1.000
+			GameName.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			GameName.BorderSizePixel = 0
+			GameName.Position = UDim2.new(0, 10, 0.5, 0)
+			GameName.Size = UDim2.new(1, 50, 0, 20)
+			GameName.ZIndex = 7
+			GameName.Font = Enum.Font.GothamMedium
+			GameName.Text = loader_version.Name
+			GameName.TextColor3 = Color3.fromRGB(255, 255, 255)
+			GameName.TextSize = 13.000
+			GameName.TextTransparency = 0.300
+			GameName.TextWrapped = true
+			GameName.TextXAlignment = Enum.TextXAlignment.Left
+
+			Line.Name = "Line"
+			Line.Parent = LoaderVersion
+			Line.AnchorPoint = Vector2.new(0, 0.5)
+			Line.BackgroundColor3 = Color3.fromRGB(125, 249, 255)
+			Line.BorderColor3 = Color3.fromRGB(0, 0, 0)
+			Line.BorderSizePixel = 0
+			Line.Position = UDim2.new(0, 0, 0.5, 0)
+			Line.Size = UDim2.new(0, 2, 1, 0)
+			Line.ZIndex = 8;
+			
+			local calb = function(value)
+				if value then
+					Airflow:CreateAnimation(Line,0.25,Enum.EasingStyle.Quint,{
+						Position = UDim2.new(0, 0, 0.5, 0)
+					});
+					
+					Airflow:CreateAnimation(GameName,0.25,Enum.EasingStyle.Quint,{
+						Position = UDim2.new(0, 10, 0.5, 0)
+					});
+					
+					cl_promis.selectedLoader = loader_version.LoadScript;
+					cl_promis:SetStatus(loader_version.Status);
+					
+					if typeof(loader_version.LastUpdate) == "string" then
+						Value_2.Text = loader_version.LastUpdate
+					else
+						local data = os.date("*t", loader_version.LastUpdate);
+						Value_2.Text = string.format("%s:%s:%s",tostring(data.day),tostring(data.month),tostring(data.year))
+					end;
+					
+				else
+					Airflow:CreateAnimation(Line,0.25,Enum.EasingStyle.Quint,{
+						Position = UDim2.new(0, -10, 0.5, 0)
+					});
+					Airflow:CreateAnimation(GameName,0.25,Enum.EasingStyle.Quint,{
+						Position = UDim2.new(0, 5, 0.5, 0)
+					});
+				end;
+			end;
+			
+			if cl_promis.isfirst then
+				cl_promis.isfirst = false;
+				
+				calb(true);
+			else
+				calb(false);
+			end;
+			
+			table.insert(cl_promis.versions,{
+				Callback = calb,
+				_f = LoaderVersion
+			})
+			
+			Airflow:NewInput(LoaderVersion,function()
+				for i,v in next , cl_promis.versions do
+					if v._f == LoaderVersion then
+						v.Callback(true);
+					else
+						v.Callback(false);
+					end;
+				end;
+			end)
+		end;
+		
+		return cl_promis;
+	end;
+	
+	
+	return promis;
 end;
 
 return Airflow;
