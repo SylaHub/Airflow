@@ -165,7 +165,7 @@ local Airflow = {
 	ScreenGui = AirflowUI,
 	Config = {
 		Scale = UDim2.new(0.1, 515, 0.1, (UserInputService.TouchEnabled and 345) or 395),
-		Hightlight = Color3.fromRGB(163, 128, 216),
+		Hightlight = Color3.fromRGB(255, 128, 0),
 		Logo = "http://www.roblox.com/asset/?id=118752982916680",
 		Keybind = "Delete",
 		Resizable = false,
@@ -2030,7 +2030,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		circle.Name = Airflow:RandomString()
 		circle.Parent = block
 		circle.AnchorPoint = Vector2.new(0.5, 0.5)
-		circle.BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(163, 128, 216)
+		circle.BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(255, 128, 0)
 		circle.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		circle.BorderSizePixel = 0
 		circle.Position = UDim2.new(0.75, 0, 0.5, 0)
@@ -2061,7 +2061,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 		local Change = function(value)
 			if value then
 				Airflow:CreateAnimation(circle,0.5,nil,{
-					BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(163, 128, 216),
+					BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(255, 128, 0),
 					Position = UDim2.new(0.75, 0, 0.5, 0)
 				});
 			else
@@ -2288,7 +2288,7 @@ function Airflow:Elements(element : Frame,OnChange : BindableEvent , windowConfi
 
 		slide.Name = Airflow:RandomString()
 		slide.Parent = wheel
-		slide.BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(163, 128, 216)
+		slide.BackgroundColor3 = windowConfig.Hightlight or Color3.fromRGB(255, 128, 0)
 		slide.BorderColor3 = Color3.fromRGB(0, 0, 0)
 		slide.BorderSizePixel = 0
 		slide.Size = UDim2.new((config.Default - config.Min) / (config.Max - config.Min), 0, 1, 0)
