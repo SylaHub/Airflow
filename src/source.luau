@@ -4258,8 +4258,8 @@ function Airflow:Init(config)
 	static.BorderSizePixel = 0
 	static.Size = UDim2.new(1, 0, 1, 0)
 	static.ZIndex = -10
-	static.Image = "rbxassetid://9579075682"
-	static.ImageTransparency = 1
+	static.Image = "rbxassetid://8222365457"
+	static.ImageTransparency = 0
 	static.ScaleType = Enum.ScaleType.Crop
 
 	function Response:Update()
@@ -5273,8 +5273,8 @@ function Airflow:DrawList(config)
 	static.BorderSizePixel = 0
 	static.Size = UDim2.new(1, 0, 1, 0)
 	static.ZIndex = 120
-	static.Image = "rbxassetid://9579075682"
-	static.ImageTransparency = 0.9
+	static.Image = "rbxassetid://8222365457"
+	static.ImageTransparency = 0
 	static.ScaleType = Enum.ScaleType.Crop
 	static.ImageTransparency = 1
 
