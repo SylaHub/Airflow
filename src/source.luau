@@ -165,7 +165,7 @@ local Airflow = {
 	ScreenGui = AirflowUI,
 	Config = {
 		Scale = UDim2.new(0.1, 515, 0.1, (UserInputService.TouchEnabled and 345) or 395),
-		Hightlight = Color3.fromRGB(163, 128, 216),
+		Hightlight = Color3.fromRGB(255, 159, 13),
 		Logo = "http://www.roblox.com/asset/?id=118752982916680",
 		Keybind = "Delete",
 		Resizable = false,
