@@ -4016,7 +4016,7 @@ function Airflow:Init(config)
 			})
 
 			Airflow:CreateAnimation(static,0.45,nil,{
-				ImageTransparency = 0.95;
+				ImageTransparency = 0;
 			})
 
 			Airflow:CreateAnimation(TabInputs,0.45,nil,{
